@@ -1,0 +1,2 @@
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
+http.createServer((req,res)=>{const name=req.url.split('?')[0];const files={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/style.css':'style.css'};if(!files[name]){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'text/html; charset=utf-8');fs.createReadStream(path.join(__dirname,'dist',files[name])).pipe(res);}).listen(8765,'127.0.0.1',()=>console.log('http://127.0.0.1:8765'));
