@@ -20,7 +20,7 @@ path('M228 512 L305 145 L312 111 H328 L335 145 L412 512','url(#'+id+'-steel)',6)
 for(const [y,w] of [[208,122],[288,137],[370,151]]){path('M'+(320-w)+' '+y+' L320 '+(y-23)+' L'+(320+w)+' '+y+' Z','url(#'+id+'-steel)',4,'#dce7e9');path('M'+(320-w)+' '+y+' H'+(320+w),'#527381',4);}
 path('M280 163 L268 93 L305 145 M360 163 L372 93 L335 145','#7897a4',4);
 for(const xx of [228,412]){x+='<rect x="'+(xx-13)+'" y="510" width="26" height="15" rx="2" fill="#93a5a8"/>';}
-const g=s.groundWires;const slots=g?(g.count===1?[[320,g.single,'중앙']]:[[268,g.left,'좌'+(g.leftNo?' #'+g.leftNo:'')],[372,g.right,'우'+(g.rightNo?' #'+g.rightNo:'')]]):[];
+const g=s.groundWires;const slots=g?(g.count===1?[[320,g.single,'중앙']]:[[268,g.left,'좌'],[372,g.right,'우']]):[];
 for(const [xx,type,pos] of slots){const c=type==='OPGW'?'#387d9e':'#8d7862';path('M'+(xx-26)+' 62 L'+xx+' 93 L'+(xx+12)+' 119',c,3);circle(xx,93,5,c);text(xx<320?164:xx>320?476:320,81,pos+' '+type,c,22);}
 if(!g)text(320,62,'가공지선 미등록','#8ca0a8',20);
 const count=s.stringCount||0;
