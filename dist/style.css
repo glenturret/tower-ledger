@@ -17,3 +17,5 @@ fieldset input[type=radio]{display:inline-block;width:20px;height:20px;margin:0;
 .circuitPair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}.circuitPair label,.circuitPair>div>span{display:block;margin:0;min-height:0;font-size:14px;font-weight:600}.circuitPair select,.circuitPair output{display:block;box-sizing:border-box;width:100%;height:46px;margin:4px 0 0;padding:0 12px;border:1px solid #ccd8cf;border-radius:10px;background:white;color:#203a34;font:400 16px/normal system-ui,sans-serif}.circuitPair output{display:flex;align-items:center}
 
 .equipmentGroup{margin:8px 0;border:1px solid #dce6de;border-radius:12px;background:#fff}.equipmentGroup>summary{cursor:pointer;padding:14px;font-weight:700}.equipmentGroup>.partrow{width:calc(100% - 20px);margin:0 10px 8px}
+
+[data-insulator-circuit][aria-pressed="true"]{background:#254f49;color:white}
