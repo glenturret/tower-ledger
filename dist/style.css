@@ -18,4 +18,3 @@ fieldset input[type=radio]{display:inline-block;width:20px;height:20px;margin:0;
 
 .equipmentGroup{margin:8px 0;border:1px solid #dce6de;border-radius:12px;background:#fff}.equipmentGroup>summary{cursor:pointer;padding:14px;font-weight:700}.equipmentGroup>.partrow{width:calc(100% - 20px);margin:0 10px 8px}
 
-[data-insulator-circuit][aria-pressed="true"]{background:#254f49;color:white}
