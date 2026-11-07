@@ -12,7 +12,7 @@ function show(view){current=view;['linesView','listView','towerView','settingsVi
 function summary(s){return layoutLabel()+' · '+(s.towerType||s.towerHeight?'철탑 '+(s.towerType||'형태 미등록')+' · '+(s.towerHeight?s.towerHeight+' m':'높이 미등록')+' · ':'')+'항공구 '+s.ballCount+'개 · 항공등 '+(s.lightIntensity||'미등록')+' · 애자련 '+(s.insulatorType||'미등록')+' '+(s.stringCount?s.stringCount+'련':'련수 미등록')+' · 가공지선 '+M.groundLabel(s.groundWires)+' · 지형 '+(s.terrain||'미등록');}
 function render(){
  $('lineCards').replaceChildren();M.LINES.forEach(l=>{const b=document.createElement('button');b.className='linecard';const title=document.createElement('strong');title.textContent=l.name;const detail=document.createElement('span');detail.textContent=l.count+'기 · 등록 '+new Set(records.filter(r=>r.lineId===l.id).map(r=>r.tower)).size+'기';const arrow=document.createElement('span');arrow.textContent='›';b.append(title,detail,arrow);b.onclick=()=>{lineId=l.id;circuit=1;$('search').value='';show('listView');};$('lineCards').append(b);});
- $('circuitSide').value=circuitLayouts[lineId]||'';$('circuitLayoutSummary').textContent=layoutLabel();document.querySelectorAll('[data-circuit]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.circuit)===circuit)));$('lineTitle').textContent=line().name+' #'+circuit;$('towerLine').textContent=line().name+' #'+circuit;$('towerTitle').textContent=tower+'호 철탑';$('towerCount').textContent=line().count;$('recorded').textContent=new Set(scopedRecords().filter(r=>r.lineId===lineId).map(r=>r.tower)).size;
+ document.querySelectorAll('[data-layout-side]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.layoutSide===circuitLayouts[lineId])));$('circuitLayoutSummary').textContent=layoutLabel();document.querySelectorAll('[data-circuit]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.circuit)===circuit)));$('lineTitle').textContent=line().name+' #'+circuit;$('towerLine').textContent=line().name+' #'+circuit;$('towerTitle').textContent=tower+'호 철탑';$('towerCount').textContent=line().count;$('recorded').textContent=new Set(scopedRecords().filter(r=>r.lineId===lineId).map(r=>r.tower)).size;
  $('towerGrid').replaceChildren();for(let n=1;n<=line().count;n++){if($('search').value&&!String(n).includes($('search').value.trim()))continue;const done=scopedRecords().some(r=>r.lineId===lineId&&r.tower===n),b=document.createElement('button');b.className='towercell'+(done?' done':'');const title=document.createElement('span');title.textContent=n+'호';const small=document.createElement('small');small.textContent=done?'● 기록 있음':'○ 기록 없음';b.append(title,small);b.onclick=()=>{tower=n;mainScene.reset();show('towerView');};$('towerGrid').append(b);}if(!$('towerGrid').children.length)$('towerGrid').textContent='해당 호수가 없습니다.';
  const state=M.scene(scopedRecords(),lineId,tower);mainScene.update(state);$('sceneSummary').textContent=summary(state);
  $('partList').replaceChildren();M.PARTS.forEach(p=>{const r=latest(p),b=document.createElement('button');b.className='partrow';const a=document.createElement('span');a.textContent=p;const small=document.createElement('small');small.textContent=r?stamp(r.createdAt):'아직 등록하지 않았습니다';a.append(small);const value=document.createElement('span');value.className='value';value.textContent=M.label(r)+' ›';b.append(a,value);b.onclick=()=>openEditor(p);$('partList').append(b);});
@@ -57,13 +57,13 @@ function layoutLabel(){
   if(!side)return '회선 좌우 배치 미지정';
   return side==='left'?'좌측 #1 · 우측 #2':'좌측 #2 · 우측 #1';
 }
-$('saveCircuitSide').onclick=async()=>{
-  const side=$('circuitSide').value;
-  if(!['left','right'].includes(side))return toast('#1 위치를 선택해주세요.');
+const layoutButtons=document.querySelectorAll('[data-layout-side]');
+layoutButtons.forEach(button=>button.onclick=()=>saveLayout(button.dataset.layoutSide));
+async function saveLayout(side){
+  if(circuitLayouts[lineId]===side)return;
   if(!db)return toast('저장소를 여는 중입니다.');
   const selectedLine=lineId;
-  const button=$('saveCircuitSide');
-  button.disabled=true;
+  layoutButtons.forEach(button=>button.disabled=true);
   try{
     const updated={...circuitLayouts,[selectedLine]:side};
     await transaction('meta','readwrite',tx=>tx.objectStore('meta').put({key:'circuitLayouts',value:updated}));
@@ -73,6 +73,6 @@ $('saveCircuitSide').onclick=async()=>{
   }catch{
     toast('회선 배치를 저장하지 못했습니다.');
   }finally{
-    button.disabled=false;
+    layoutButtons.forEach(button=>button.disabled=false);
   }
-};
+}
