@@ -20,13 +20,13 @@ path('M228 512 L305 145 L312 111 H328 L335 145 L412 512','url(#'+id+'-steel)',6)
 for(const [y,w] of [[208,122],[288,137],[370,151]]){path('M'+(320-w)+' '+y+' L320 '+(y-23)+' L'+(320+w)+' '+y+' Z','url(#'+id+'-steel)',4,'#dce7e9');path('M'+(320-w)+' '+y+' H'+(320+w),'#527381',4);}
 path('M280 163 L268 93 L305 145 M360 163 L372 93 L335 145','#7897a4',4);
 for(const xx of [228,412]){x+='<rect x="'+(xx-13)+'" y="510" width="26" height="15" rx="2" fill="#93a5a8"/>';}
-const g=s.groundWires;const slots=g?(g.count===1?[[g.position==='좌측'?268:g.position==='우측'?372:320,g.single,g.position]]:[[268,g.left,'좌'],[372,g.right,'우']]):[];
+const g=s.groundWires;const slots=g?(g.count===1?[[320,g.single,'중앙']]:[[268,g.left,'좌'+(g.leftNo?' #'+g.leftNo:'')],[372,g.right,'우'+(g.rightNo?' #'+g.rightNo:'')]]):[];
 for(const [xx,type,pos] of slots){const c=type==='OPGW'?'#387d9e':'#8d7862';path('M'+(xx-26)+' 62 L'+xx+' 93 L'+(xx+12)+' 119',c,3);circle(xx,93,5,c);text(xx<320?164:xx>320?476:320,81,pos+' '+type,c,22);}
 if(!g)text(320,62,'가공지선 미등록','#8ca0a8',20);
 const count=s.stringCount||0;
 if(s.insulatorType&&count){for(const [y,w] of [[208,122],[288,137],[370,151]])for(const side of [-1,1]){const xx=320+side*w;for(let n=0;n<count;n++){const offset=count===2?(n?7:-7):0;const horizontal=s.insulatorType==='내장';const cx=xx+(horizontal?side*24:offset),cy=y+(horizontal?offset:25);x+='<g data-kind="insulator-string" transform="translate('+cx+' '+cy+') rotate('+(horizontal?90:0)+')">';path('M0 -24 V24','#58777c',2.5);for(let j=-18;j<=18;j+=6)x+='<ellipse cx="0" cy="'+j+'" rx="8" ry="2.7" fill="url(#'+id+'-glass)" stroke="#4f8579" stroke-width=".8"/>';x+='</g>';}
 const ex=xx+(s.insulatorType==='내장'?side*49:0),ey=y+(s.insulatorType==='현수'?51:0);circle(ex,ey,4,'#45616d');path('M'+ex+' '+ey+' l'+side*25+' 8','#93a7af',2);}}
-if(s.lightIntensity){circle(320,107,s.lightIntensity==='고광도'?17:12,'#fce4bd');circle(320,107,6,s.lightIntensity==='고광도'?'#eab64f':'#d86e56','signal');}
+if(s.lampUnits){for(const [key,xx,y] of [['upperSupply',307,108],['upperLoad',333,108],['lowerSupply',307,195],['lowerLoad',333,195]]){const v=s.lampUnits[key];if(['고광도','중광도','저광도'].includes(v)){circle(xx,y,v==='고광도'?13:v==='중광도'?10:8,'#fce4bd');circle(xx,y,5,'#d86e56','signal');}}}else if(s.lightIntensity){circle(320,107,s.lightIntensity==='고광도'?17:12,'#fce4bd');circle(320,107,6,s.lightIntensity==='고광도'?'#eab64f':'#d86e56','signal');}
 // Quantity strip intentionally does not assert actual marker-ball installation positions.
 if(s.ballCount){path('M38 31 Q320 48 602 31','#a2b4bc',1.5);for(let i=0;i<s.ballCount;i++){const t=(i+.5)/s.ballCount;circle(38+564*t,31+34*t*(1-t),s.ballCount>40?2.5:5,i%2?'#e6c78c':'#dc854a','marker-ball');}}
 text(320,558,s.terrain||'지형 미등록','#5b786b',22);
