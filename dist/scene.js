@@ -1,20 +1,37 @@
-/* A small perspective 3D renderer. Geometry is illustrative, not an engineering drawing. */
+/* Front-oriented illustrative elevation, not a site-specific engineering drawing. */
 (function(root){
-function geometry(s){const out=[];const line=(a,b,c='#78938d',width=1.6,kind='steel')=>out.push({type:'line',points:[a,b],c,width,kind});const poly=(points,c)=>out.push({type:'poly',points,c});const dot=(p,r,c,kind)=>out.push({type:'dot',points:[p],r,c,kind});
-poly([[-12,0,-9],[12,0,-9],[12,0,9],[-12,0,9]],s.terrain==='논'?'#a9bc7c':s.terrain==='도심지'?'#bbc9ca':s.terrain==='산악지'?'#87a58a':'#c2d0c4');
-function box(x,z,w,h,d){const a=[x,0,z],b=[x+w,0,z],c=[x+w,0,z+d],e=[x,h,z],f=[x+w,h,z],g=[x+w,h,z+d],j=[x,h,z+d];poly([a,b,f,e],'#80989c');poly([b,c,g,f],'#9eb2b4');poly([e,f,g,j],'#d7e0db');}
-if(s.terrain==='산악지'){for(const [x,z,h] of [[-8,-5,5],[8,-5,4],[-8,5,3],[8,5,3]]){poly([[x-4,0,z-3],[x+4,0,z-3],[x,h,z]],'#6d9079');poly([[x+4,0,z-3],[x+4,0,z+3],[x,h,z]],'#567760');poly([[x+4,0,z+3],[x-4,0,z+3],[x,h,z]],'#91ae8b');}}
-if(s.terrain==='논'){for(let z=-8;z<9;z+=2)line([-11,.05,z],[11,.05,z],'#6e944f',2,'field');for(let x=-10;x<12;x+=4)line([x,.06,-9],[x,.06,9],'#d2d6a2',2,'field');}
-if(s.terrain==='도심지'){poly([[-12,.04,-1],[12,.04,-1],[12,.04,1],[-12,.04,1]],'#6f8589');for(const [x,z,w,h] of [[-9,-6,2,4],[-6,-6,2,2],[6,-6,3,5],[7,4,2,3],[-9,4,3,3]])box(x,z,w,h,2);}
-const levels=[[0,2.2],[3,1.6],[6,1.1],[9,.75],[12,.5],[15,.22]];
-for(let i=0;i<levels.length-1;i++){const [y,w]=levels[i],[yy,ww]=levels[i+1];const a=[[-w,y,-w],[w,y,-w],[w,y,w],[-w,y,w]],b=[[-ww,yy,-ww],[ww,yy,-ww],[ww,yy,ww],[-ww,yy,ww]];for(let k=0;k<4;k++){line(a[k],b[k],'#526f69',2.4);line(a[k],a[(k+1)%4]);line(a[k],b[(k+1)%4]);line(a[(k+1)%4],b[k]);}}
-for(const y of [7,10,12])for(const side of [-1,1]){line([0,y+.7,0],[side*4,y,0],'#526f69',2.6);line([0,y,0],[side*4,y,0],'#526f69',2.6);line([0,y,-.6],[side*4,y,0]);let end=[side*4,y,0];if(s.insulatorType){for(let i=0;i<7;i++){const p=s.insulatorType==='내장'?[side*(4+i*.17),y,0]:[side*4,y-i*.17,0];dot(p,.13,'#d4ab62','insulator');end=p;}}line([end[0],end[1],-8],[end[0],end[1],8],'#9aabad',.9,'wire');}
-line([-11,14,-.4],[0,15,0],'#879b9b',1,'wire');line([0,15,0],[11,14,.4],'#879b9b',1,'wire');
-for(let i=0;i<s.ballCount;i++){const t=(i+.5)/s.ballCount;const x=-10.5+21*t;dot([x,15-Math.abs(x)/11,x/27],s.ballCount>30?.105:.23,i%2?'#f1e8cc':'#de7a3f','ball');}
-if(s.lightIntensity){const levels=[15.4];for(const y of levels)dot([0,y,.3],s.lightIntensity==='고광도'?.28:s.lightIntensity==='중광도'?.22:.16,s.lightIntensity==='고광도'?'#fff6c7':'#eb6f52','lamp');}
-return out;}
-function mount(canvas){const ctx=canvas.getContext('2d');let state={},yaw=.55,tilt=.18,down=null,frame=0;function project(p,w,h){const x=p[0]*Math.cos(yaw)+p[2]*Math.sin(yaw),z=-p[0]*Math.sin(yaw)+p[2]*Math.cos(yaw),y=p[1]-7;const yy=y*Math.cos(tilt)-z*Math.sin(tilt),zz=y*Math.sin(tilt)+z*Math.cos(tilt),scale=Math.min(w/29,h/22)*36/(36+zz);return [w/2+x*scale,h*.50-yy*scale,zz,scale];}
-function draw(){const w=canvas.clientWidth||320,h=canvas.clientHeight||350,dpr=Math.min(devicePixelRatio||1,2);canvas.width=w*dpr;canvas.height=h*dpr;ctx.scale(dpr,dpr);const bg=ctx.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#e1eeef');bg.addColorStop(1,'#f2f5e9');ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);const items=geometry(state).map(o=>({...o,p:o.points.map(p=>project(p,w,h))}));items.sort((a,b)=>b.p.reduce((s,p)=>s+p[2],0)/b.p.length-a.p.reduce((s,p)=>s+p[2],0)/a.p.length);for(const o of items){ctx.beginPath();ctx.strokeStyle=o.c;ctx.fillStyle=o.c;ctx.lineWidth=o.width||1;ctx.lineCap='round';if(o.type==='dot'){const [x,y,,scale]=o.p[0];const radius=Math.max(1.4,o.r*scale);if(o.kind==='lamp'){ctx.globalAlpha=matchMedia('(prefers-reduced-motion: reduce)').matches?1:(Math.floor(Date.now()/800)%2?1:.25);ctx.shadowColor=o.c;ctx.shadowBlur=state.lightIntensity==='고광도'?20:10;}ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.globalAlpha=1;}else{o.p.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));if(o.type==='poly'){ctx.closePath();ctx.fill();}else ctx.stroke();}}}
-function schedule(){cancelAnimationFrame(frame);frame=requestAnimationFrame(draw);}canvas.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId);});canvas.addEventListener('pointermove',e=>{if(!down)return;yaw+=(e.clientX-down[0])*.012;tilt=Math.max(-.1,Math.min(.65,tilt+(e.clientY-down[1])*.005));down=[e.clientX,e.clientY];schedule();});canvas.addEventListener('pointerup',()=>down=null);canvas.addEventListener('pointercancel',()=>down=null);canvas.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();yaw+=e.key==='ArrowLeft'?-.15:e.key==='ArrowRight'?.15:0;tilt=Math.max(-.1,Math.min(.65,tilt+(e.key==='ArrowDown'?.05:e.key==='ArrowUp'?-.05:0)));schedule();});new ResizeObserver(schedule).observe(canvas);setInterval(()=>{if(state.lightIntensity&&!document.hidden&&canvas.getClientRects().length)schedule();},800);return {update(s){state=s;canvas.setAttribute('aria-label','회전 가능한 철탑 3D 개념도. 항공구 '+(s.ballCount||0)+'개, 애자련 '+(s.insulatorType||'미등록')+', 지형 '+(s.terrain||'미등록'));schedule();},reset(){yaw=.55;tilt=.18;schedule();}};}
-if(typeof module!=='undefined')module.exports={geometry};else root.TowerScene={mount};
+let seq=0;
+function diagram(s,id='tower'){
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let x='<svg viewBox="0 0 640 570" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="철탑 정면 개념도"><defs><linearGradient id="'+id+'-sky" x2="0" y2="1"><stop stop-color="#edf5f8"/><stop offset="1" stop-color="#ffffff"/></linearGradient><linearGradient id="'+id+'-steel"><stop stop-color="#486777"/><stop offset=".5" stop-color="#9eb6bf"/><stop offset="1" stop-color="#405e6b"/></linearGradient><linearGradient id="'+id+'-glass"><stop stop-color="#e5f3ed"/><stop offset=".45" stop-color="#72a99a"/><stop offset="1" stop-color="#366a61"/></linearGradient></defs><rect width="640" height="570" rx="20" fill="url(#'+id+'-sky)"/>';
+const path=(d,c,w=2,fill='none')=>{x+='<path d="'+d+'" stroke="'+c+'" stroke-width="'+w+'" fill="'+fill+'" stroke-linecap="round" stroke-linejoin="round"/>';};
+const text=(xx,y,t,c='#536c77',size=20)=>{x+='<text x="'+xx+'" y="'+y+'" text-anchor="middle" fill="'+c+'" font-size="'+size+'" font-family="system-ui,sans-serif">'+esc(t)+'</text>';};
+const circle=(xx,y,r,c,cls='')=>{x+='<circle '+(cls?'class="'+cls+'"':'')+' cx="'+xx+'" cy="'+y+'" r="'+r+'" fill="'+c+'"/>';};
+if(s.terrain==='산악지'){path('M0 490 L65 380 L125 446 L190 351 L290 490Z','none',0,'#dce9e2');path('M410 490 L480 375 L550 433 L596 368 L640 440 V540 H0 V500Z','none',0,'#c4dbcc');for(const xx of [45,92,540,590]){path('M'+xx+' 481 v30','#728d7e',3);path('M'+(xx-17)+' 485 L'+xx+' 446 L'+(xx+17)+' 485Z','none',0,'#83aa91');}}
+else if(s.terrain==='논'){path('M0 480 H640 V570 H0Z','none',0,'#dce6c9');for(let y=495;y<565;y+=19)path('M0 '+y+' H640','#aec29b',2);for(let xx=-100;xx<800;xx+=110)path('M320 470 L'+xx+' 570','#f7f5db',5);}
+else if(s.terrain==='도심지'){for(const [xx,y,w] of [[25,410,65],[105,441,40],[485,420,55],[556,390,65]]){x+='<rect x="'+xx+'" y="'+y+'" width="'+w+'" height="'+(515-y)+'" rx="3" fill="#d1dee2"/>';for(let yy=y+14;yy<500;yy+=18)for(let a=xx+10;a<xx+w-6;a+=16)x+='<rect x="'+a+'" y="'+yy+'" width="6" height="8" fill="#9ab2bd"/>';}path('M0 524 H640','#b3c5cb',24);path('M0 524 H640','#f9fbf9',2);}
+else path('M0 515 Q320 495 640 515 V570 H0Z','none',0,'#e4ece6');
+x+='<ellipse cx="320" cy="529" rx="117" ry="13" fill="#365160" opacity=".09"/>';
+// A restrained offset rear frame gives depth without obstructing the front elevation.
+path('M236 518 L296 155 L310 112 H330 L344 155 L404 518','#b7c9cf',4);
+const levels=[[512,92],[433,72],[352,51],[274,34],[201,23],[145,15]];
+for(let i=0;i<levels.length-1;i++){const [y,w]=levels[i],[yy,ww]=levels[i+1];path('M'+(320-w)+' '+y+' L'+(320+ww)+' '+yy+' M'+(320+w)+' '+y+' L'+(320-ww)+' '+yy,'#8ba5ae',2);path('M'+(320-w)+' '+y+' H'+(320+w),'#6f8d99',2.6);}
+path('M228 512 L305 145 L312 111 H328 L335 145 L412 512','url(#'+id+'-steel)',6);path('M228 512 H412','#627f8d',4);
+for(const [y,w] of [[208,122],[288,137],[370,151]]){path('M'+(320-w)+' '+y+' L320 '+(y-23)+' L'+(320+w)+' '+y+' Z','url(#'+id+'-steel)',4,'#dce7e9');path('M'+(320-w)+' '+y+' H'+(320+w),'#527381',4);}
+path('M280 163 L268 93 L305 145 M360 163 L372 93 L335 145','#7897a4',4);
+for(const xx of [228,412]){x+='<rect x="'+(xx-13)+'" y="510" width="26" height="15" rx="2" fill="#93a5a8"/>';}
+const g=s.groundWires;const slots=g?(g.count===1?[[g.position==='좌측'?268:g.position==='우측'?372:320,g.single,g.position]]:[[268,g.left,'좌'],[372,g.right,'우']]):[];
+for(const [xx,type,pos] of slots){const c=type==='OPGW'?'#387d9e':'#8d7862';path('M'+(xx-26)+' 62 L'+xx+' 93 L'+(xx+12)+' 119',c,3);circle(xx,93,5,c);text(xx<320?164:xx>320?476:320,81,pos+' '+type,c,22);}
+if(!g)text(320,62,'가공지선 미등록','#8ca0a8',20);
+const count=s.stringCount||0;
+if(s.insulatorType&&count){for(const [y,w] of [[208,122],[288,137],[370,151]])for(const side of [-1,1]){const xx=320+side*w;for(let n=0;n<count;n++){const offset=count===2?(n?7:-7):0;const horizontal=s.insulatorType==='내장';const cx=xx+(horizontal?side*24:offset),cy=y+(horizontal?offset:25);x+='<g data-kind="insulator-string" transform="translate('+cx+' '+cy+') rotate('+(horizontal?90:0)+')">';path('M0 -24 V24','#58777c',2.5);for(let j=-18;j<=18;j+=6)x+='<ellipse cx="0" cy="'+j+'" rx="8" ry="2.7" fill="url(#'+id+'-glass)" stroke="#4f8579" stroke-width=".8"/>';x+='</g>';}
+const ex=xx+(s.insulatorType==='내장'?side*49:0),ey=y+(s.insulatorType==='현수'?51:0);circle(ex,ey,4,'#45616d');path('M'+ex+' '+ey+' l'+side*25+' 8','#93a7af',2);}}
+if(s.lightIntensity){circle(320,107,s.lightIntensity==='고광도'?17:12,'#fce4bd');circle(320,107,6,s.lightIntensity==='고광도'?'#eab64f':'#d86e56','signal');}
+// Quantity strip intentionally does not assert actual marker-ball installation positions.
+if(s.ballCount){path('M38 31 Q320 48 602 31','#a2b4bc',1.5);for(let i=0;i<s.ballCount;i++){const t=(i+.5)/s.ballCount;circle(38+564*t,31+34*t*(1-t),s.ballCount>40?2.5:5,i%2?'#e6c78c':'#dc854a','marker-ball');}}
+text(320,558,s.terrain||'지형 미등록','#5b786b',22);
+x+='</svg>';return x;
+}
+function mount(el){const id='elevation-'+(++seq);return {update(s){el.innerHTML=diagram(s,id);el.setAttribute('aria-label','정방향 철탑 개념도. '+(s.insulatorType||'애자련 미등록')+' '+(s.stringCount?s.stringCount+'련':'')+' / '+(s.terrain||'지형 미등록'));},reset(){}};}
+if(typeof module!=='undefined')module.exports={diagram};else root.TowerScene={mount};
 })(globalThis);

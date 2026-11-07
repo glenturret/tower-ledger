@@ -1,1 +1,1 @@
-require('./check-v3.cjs');
+require('./check-v4.cjs');
