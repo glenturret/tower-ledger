@@ -1,18 +1,18 @@
 'use strict';
 const $=id=>document.getElementById(id),M=LedgerModel;
-let db,records=[],lineId=M.LINES[0].id,tower=1,circuit=1,part='항공등',photos=[],processing=0,saving=false,dirty=false,current='linesView',previous='linesView';
+let db,records=[],circuitLayouts={},lineId=M.LINES[0].id,tower=1,circuit=1,part='항공등',photos=[],processing=0,saving=false,dirty=false,current='linesView',previous='linesView';
 const mainScene=TowerScene.mount($('mainScene')),editScene=TowerScene.mount($('editScene'));
 const line=()=>M.LINES.find(l=>l.id===lineId),latest=p=>M.latest(scopedRecords(),lineId,tower,p),stamp=d=>new Date(d).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
 function toast(message){$('toast').textContent=message;$('toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').hidden=true,5000);}
 function req(r){return new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
 function transaction(stores,mode,action){return new Promise((resolve,reject)=>{const tx=db.transaction(stores,mode);action(tx);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('저장이 취소되었습니다.'));});}
-async function reload(){records=(await req(db.transaction('records').objectStore('records').getAll())).map(M.migrate);render();}
+async function reload(){records=(await req(db.transaction('records').objectStore('records').getAll())).map(M.migrate);const saved=await req(db.transaction('meta').objectStore('meta').get('circuitLayouts'));circuitLayouts=validatedLayouts(saved?.value);render();}
 function confirmSave(summary){return confirm('1차 확인 — 저장하시겠습니까?\n'+summary)&&confirm('2차 확인 — 최종 저장할까요?\n'+summary);}
-function show(view){current=view;['linesView','circuitView','listView','towerView','settingsView'].forEach(id=>$(id).hidden=id!==view);render();window.scrollTo(0,0);}
-function summary(s){return (s.towerType||s.towerHeight?'철탑 '+(s.towerType||'형태 미등록')+' · '+(s.towerHeight?s.towerHeight+' m':'높이 미등록')+' · ':'')+'항공구 '+s.ballCount+'개 · 항공등 '+(s.lightIntensity||'미등록')+' · 애자련 '+(s.insulatorType||'미등록')+' '+(s.stringCount?s.stringCount+'련':'련수 미등록')+' · 가공지선 '+M.groundLabel(s.groundWires)+' · 지형 '+(s.terrain||'미등록');}
+function show(view){current=view;['linesView','listView','towerView','settingsView'].forEach(id=>$(id).hidden=id!==view);render();window.scrollTo(0,0);}
+function summary(s){return layoutLabel()+' · '+(s.towerType||s.towerHeight?'철탑 '+(s.towerType||'형태 미등록')+' · '+(s.towerHeight?s.towerHeight+' m':'높이 미등록')+' · ':'')+'항공구 '+s.ballCount+'개 · 항공등 '+(s.lightIntensity||'미등록')+' · 애자련 '+(s.insulatorType||'미등록')+' '+(s.stringCount?s.stringCount+'련':'련수 미등록')+' · 가공지선 '+M.groundLabel(s.groundWires)+' · 지형 '+(s.terrain||'미등록');}
 function render(){
- $('lineCards').replaceChildren();M.LINES.forEach(l=>{const b=document.createElement('button');b.className='linecard';const title=document.createElement('strong');title.textContent=l.name;const detail=document.createElement('span');detail.textContent=l.count+'기 · 등록 '+new Set(records.filter(r=>r.lineId===l.id).map(r=>r.tower)).size+'기';const arrow=document.createElement('span');arrow.textContent='›';b.append(title,detail,arrow);b.onclick=()=>{lineId=l.id;$('search').value='';show('circuitView');};$('lineCards').append(b);});
- $('circuitLine').textContent=line().name;$('lineTitle').textContent=line().name+' #'+circuit;$('towerLine').textContent=line().name+' #'+circuit;$('towerTitle').textContent=tower+'호 철탑';$('towerCount').textContent=line().count;$('recorded').textContent=new Set(scopedRecords().filter(r=>r.lineId===lineId).map(r=>r.tower)).size;
+ $('lineCards').replaceChildren();M.LINES.forEach(l=>{const b=document.createElement('button');b.className='linecard';const title=document.createElement('strong');title.textContent=l.name;const detail=document.createElement('span');detail.textContent=l.count+'기 · 등록 '+new Set(records.filter(r=>r.lineId===l.id).map(r=>r.tower)).size+'기';const arrow=document.createElement('span');arrow.textContent='›';b.append(title,detail,arrow);b.onclick=()=>{lineId=l.id;circuit=1;$('search').value='';show('listView');};$('lineCards').append(b);});
+ $('circuitSide').value=circuitLayouts[lineId]||'';$('circuitLayoutSummary').textContent=layoutLabel();document.querySelectorAll('[data-circuit]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.circuit)===circuit)));$('lineTitle').textContent=line().name+' #'+circuit;$('towerLine').textContent=line().name+' #'+circuit;$('towerTitle').textContent=tower+'호 철탑';$('towerCount').textContent=line().count;$('recorded').textContent=new Set(scopedRecords().filter(r=>r.lineId===lineId).map(r=>r.tower)).size;
  $('towerGrid').replaceChildren();for(let n=1;n<=line().count;n++){if($('search').value&&!String(n).includes($('search').value.trim()))continue;const done=scopedRecords().some(r=>r.lineId===lineId&&r.tower===n),b=document.createElement('button');b.className='towercell'+(done?' done':'');const title=document.createElement('span');title.textContent=n+'호';const small=document.createElement('small');small.textContent=done?'● 기록 있음':'○ 기록 없음';b.append(title,small);b.onclick=()=>{tower=n;mainScene.reset();show('towerView');};$('towerGrid').append(b);}if(!$('towerGrid').children.length)$('towerGrid').textContent='해당 호수가 없습니다.';
  const state=M.scene(scopedRecords(),lineId,tower);mainScene.update(state);$('sceneSummary').textContent=summary(state);
  $('partList').replaceChildren();M.PARTS.forEach(p=>{const r=latest(p),b=document.createElement('button');b.className='partrow';const a=document.createElement('span');a.textContent=p;const small=document.createElement('small');small.textContent=r?stamp(r.createdAt):'아직 등록하지 않았습니다';a.append(small);const value=document.createElement('span');value.className='value';value.textContent=M.label(r)+' ›';b.append(a,value);b.onclick=()=>openEditor(p);$('partList').append(b);});
@@ -23,9 +23,9 @@ function renderHistory(){$('history').replaceChildren();const items=scopedRecord
 function closeEditor(){if(processing||saving)return toast('사진 처리 또는 저장이 끝날 때까지 기다려주세요.');if(dirty&&!confirm('저장하지 않은 변경 내용을 닫을까요?'))return;$('editor').close();}
 $('closeEditor').onclick=closeEditor;$('editor').addEventListener('cancel',e=>{e.preventDefault();closeEditor();});$('recordForm').oninput=()=>{dirty=true;preview();};
 $('recordForm').onsubmit=async e=>{e.preventDefault();if(processing||saving)return;const choice=$('choiceInput').value,ballCount=Number($('ballInput').value);if(part==='항공구'&&(!Number.isInteger(ballCount)||ballCount<0||ballCount>100||$('ballInput').value===''))return toast('항공구 개수를 0~100 사이 정수로 입력해주세요.');if(!['애자련','항공등'].includes(part)&&M.CHOICES[part]&&!M.CHOICES[part].includes(choice))return toast('항목을 선택해주세요.');const insulatorType=selected('insulatorType'),stringCount=Number(selected('stringCount')),groundWires=readGround();if(part==='애자련'&&(!['내장','현수'].includes(insulatorType)||![1,2].includes(stringCount)))return toast('애자련 형태와 1련·2련을 선택해주세요.');if(part==='가공지선'&&!M.validGround(groundWires))return toast('가공지선 조수와 종류를 선택해주세요.');if(part==='철탑 기본정보'&&!readTower().towerType&&!readTower().towerHeight)return toast('철탑 형태 또는 높이를 입력해주세요.');const lampUnits=readLamps(),insulatorYear=Number($('insulatorYear').value)||undefined,insulatorDiscs=Number($('insulatorDiscs').value)||undefined;const record={id:crypto.randomUUID(),lineId,tower,part,...(M.sharedPart(part)?{}:{circuit}),status:'등록',note:$('noteInput').value.trim(),land:part==='부지'?[...$('landOptions').querySelectorAll('input:checked')].map(x=>x.value):[],photos:[...photos],createdAt:new Date().toISOString(),...(part==='항공구'?{ballCount}:part==='항공등'?{lampUnits}:part==='애자련'?{insulatorType,stringCount,insulatorYear,insulatorDiscs}:part==='지형'?{terrain:choice}:part==='가공지선'?{groundWires}:part==='철탑 기본정보'?readTower():{})};if(!confirmSave(line().name+' #'+circuit+' / '+tower+'호 / '+part+' / '+M.label(record)))return;saving=true;$('saveRecord').disabled=true;try{await transaction('records','readwrite',tx=>tx.objectStore('records').add(record));records.push(record);dirty=false;$('editor').close();render();toast('관리대장에 저장했습니다.');navigator.storage?.persist?.().catch(()=>{});}catch(err){toast('저장하지 못했습니다. 저장 공간을 확인해주세요.');}finally{saving=false;$('saveRecord').disabled=false;}};
-$('back').onclick=()=>show('listView');$('linesBack').onclick=()=>show('circuitView');$('circuitsBack').onclick=()=>show('linesView');$('search').oninput=render;$('settingsBtn').onclick=()=>{if(current!=='settingsView')previous=current;show('settingsView');};$('settingsBack').onclick=()=>show(previous);
-$('exportBtn').onclick=()=>{const data={format:'tower-ledger',version:5,exportedAt:new Date().toISOString(),lines:M.LINES,records};const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='철탑대장-전체선로-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);$('backupStatus').textContent='두 선로 전체 백업을 요청했습니다. 파일 앱에서 저장 여부를 확인하세요.';};
-$('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());const incoming=M.validate(data);if(data.version<3&&!confirm('이전 버전 백업은 345KV 신남원-의령에 연결됩니다. 계속할까요?'))return;const ids=new Set(records.map(r=>r.id)),add=incoming.filter(r=>!ids.has(r.id));if(!confirmSave(add.length+'개 기록을 각 선로에 추가 (기존 기록 유지)'))return;await transaction('records','readwrite',tx=>add.forEach(r=>tx.objectStore('records').add(r)));await reload();toast(add.length+'개 기록을 불러왔습니다.');}catch(err){toast('불러오기 실패: '+err.message);}finally{e.target.value='';}};
+$('back').onclick=()=>show('listView');$('linesBack').onclick=()=>show('linesView');$('search').oninput=render;$('settingsBtn').onclick=()=>{if(current!=='settingsView')previous=current;show('settingsView');};$('settingsBack').onclick=()=>show(previous);
+$('exportBtn').onclick=()=>{const data={format:'tower-ledger',version:5,exportedAt:new Date().toISOString(),lines:M.LINES,records,circuitLayouts};const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='철탑대장-전체선로-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);$('backupStatus').textContent='두 선로 전체 백업을 요청했습니다. 파일 앱에서 저장 여부를 확인하세요.';};
+$('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());const incoming=M.validate(data);if(data.version<3&&!confirm('이전 버전 백업은 345KV 신남원-의령에 연결됩니다. 계속할까요?'))return;const ids=new Set(records.map(r=>r.id)),add=incoming.filter(r=>!ids.has(r.id));if(!confirmSave(add.length+'개 기록을 각 선로에 추가 (기존 기록 유지)'))return;const layouts={...validatedLayouts(data.circuitLayouts),...circuitLayouts};await transaction(['records','meta'],'readwrite',tx=>{add.forEach(r=>tx.objectStore('records').add(r));tx.objectStore('meta').put({key:'circuitLayouts',value:layouts});});await reload();toast(add.length+'개 기록을 불러왔습니다.');}catch(err){toast('불러오기 실패: '+err.message);}finally{e.target.value='';}};
 window.addEventListener('beforeunload',e=>{if(dirty&&$('editor').open){e.preventDefault();e.returnValue='';}});
 (async()=>{try{const open=indexedDB.open('tower-ledger-v1',1);open.onupgradeneeded=()=>{open.result.createObjectStore('records',{keyPath:'id'});open.result.createObjectStore('meta',{keyPath:'key'});};db=await req(open);await reload();}catch(err){toast('저장소를 열 수 없습니다. Safari 일반 모드에서 다시 열어주세요.');document.querySelectorAll('button,input,select').forEach(el=>el.disabled=true);}})();
 function renderPhotos(){$('photoPreview').replaceChildren();photos.forEach((src,i)=>{const box=document.createElement('div');box.className='photoitem';const img=document.createElement('img');img.src=src;img.alt='첨부 사진 '+(i+1);const b=document.createElement('button');b.type='button';b.textContent='삭제';b.onclick=()=>{photos.splice(i,1);dirty=true;renderPhotos();};box.append(img,b);$('photoPreview').append(box);});}
@@ -48,3 +48,31 @@ document.querySelectorAll('[data-circuit]').forEach(button=>button.onclick=()=>{
 const detailedScene=TowerScene.mount($('largeScene'));
 $('enlargeScene').onclick=()=>{const state=M.scene(scopedRecords(),lineId,tower);$('detailTitle').textContent=line().name+' #'+circuit+' · '+tower+'호 철탑';detailedScene.update(state);$('detailSummary').textContent=summary(state);$('detailScene').showModal();};
 $('closeDetail').onclick=()=>$('detailScene').close();
+
+function validatedLayouts(value){
+  return Object.fromEntries(M.LINES.filter(line=>['left','right'].includes(value?.[line.id])).map(line=>[line.id,value[line.id]]));
+}
+function layoutLabel(){
+  const side=circuitLayouts[lineId];
+  if(!side)return '회선 좌우 배치 미지정';
+  return side==='left'?'좌측 #1 · 우측 #2':'좌측 #2 · 우측 #1';
+}
+$('saveCircuitSide').onclick=async()=>{
+  const side=$('circuitSide').value;
+  if(!['left','right'].includes(side))return toast('#1 위치를 선택해주세요.');
+  if(!db)return toast('저장소를 여는 중입니다.');
+  const selectedLine=lineId;
+  const button=$('saveCircuitSide');
+  button.disabled=true;
+  try{
+    const updated={...circuitLayouts,[selectedLine]:side};
+    await transaction('meta','readwrite',tx=>tx.objectStore('meta').put({key:'circuitLayouts',value:updated}));
+    circuitLayouts=updated;
+    render();
+    toast('해당 선로의 모든 철탑에 회선 배치를 적용했습니다.');
+  }catch{
+    toast('회선 배치를 저장하지 못했습니다.');
+  }finally{
+    button.disabled=false;
+  }
+};

@@ -9,3 +9,5 @@ fieldset input[type=radio]{display:inline-block;width:20px;height:20px;margin:0;
 .equipmentGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.partrow .value{max-width:60%;overflow-wrap:anywhere;text-align:right}
 
 #detailScene{width:min(95vw,1050px);max-width:none}.diagramScroll{overflow:auto;max-height:68vh}.diagramScroll .elevation{max-width:none;min-width:480px}.sceneToolbar{flex-wrap:wrap;gap:8px}
+
+[data-circuit][aria-pressed="true"]{outline:2px solid #254f49;background:#e6eddc} #circuitLayout{margin:12px 0}
