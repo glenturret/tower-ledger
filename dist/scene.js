@@ -4,8 +4,7 @@ let seq=0;
 function diagram(s,id='tower'){
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const installedLamp=intensity=>['고광도','중광도','저광도'].includes(intensity);
-const showLampPanel=Object.values(s.lampUnits||{}).some(installedLamp)||!!s.lightIntensity;
-let x='<svg viewBox="0 0 640 '+(showLampPanel?832:570)+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="철탑 입체 개념도"><defs><linearGradient id="'+id+'-sky" x1="0" y1="0" x2="0" y2="100%"><stop stop-color="#3d5971"/><stop offset="1" stop-color="#8096a7"/></linearGradient><linearGradient id="'+id+'-steel"><stop stop-color="#486777"/><stop offset=".5" stop-color="#9eb6bf"/><stop offset="1" stop-color="#405e6b"/></linearGradient><linearGradient id="'+id+'-glass"><stop stop-color="#e5f3ed"/><stop offset=".45" stop-color="#72a99a"/><stop offset="1" stop-color="#366a61"/></linearGradient></defs><rect width="640" height="570" rx="20" fill="url(#'+id+'-sky)"/>';
+let x='<svg viewBox="0 0 640 570" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="철탑 입체 개념도"><defs><linearGradient id="'+id+'-sky" x1="0" y1="0" x2="0" y2="100%"><stop stop-color="#3d5971"/><stop offset="1" stop-color="#8096a7"/></linearGradient><linearGradient id="'+id+'-steel"><stop stop-color="#486777"/><stop offset=".5" stop-color="#9eb6bf"/><stop offset="1" stop-color="#405e6b"/></linearGradient><linearGradient id="'+id+'-glass"><stop stop-color="#e5f3ed"/><stop offset=".45" stop-color="#72a99a"/><stop offset="1" stop-color="#366a61"/></linearGradient></defs><rect width="640" height="570" rx="20" fill="url(#'+id+'-sky)"/>';
 const path=(d,c,w=2,fill='none')=>{x+='<path d="'+d+'" stroke="'+c+'" stroke-width="'+w+'" fill="'+fill+'" stroke-linecap="round" stroke-linejoin="round"/>';};
 const text=(xx,y,t,c='#536c77',size=20)=>{x+='<text x="'+xx+'" y="'+y+'" text-anchor="middle" fill="'+c+'" font-size="'+size+'" font-family="system-ui,sans-serif">'+esc(t)+'</text>';};
 const circle=(xx,y,r,c,cls='')=>{x+='<circle '+(cls?'class="'+cls+'"':'')+' cx="'+xx+'" cy="'+y+'" r="'+r+'" fill="'+c+'"/>';};
@@ -97,27 +96,35 @@ if(s.ballCircuits||s.ballCount){
   if(!s.ballCircuits)text(320,27,'기존 '+s.ballCount+'개 · 회선별 미지정','#536c77',16);
 }
 text(320,558,s.terrain||'지형 미등록','#5b786b',22);
-if(showLampPanel){
-  x+='<rect x="12" y="584" width="616" height="236" rx="18" fill="#304b61"/>';
-  const panelText=(xx,y,label,size)=>{x+='<text class="lamp-panel-text" x="'+xx+'" y="'+y+'" text-anchor="middle" fill="#f1f7ff" font-family="system-ui,sans-serif" font-size="'+size+'">'+label+'</text>';};
-  panelText(320,614,'항공장애등 · 선로 방향 측면도',22);
-  panelText(151,647,'전원측 · 이전 철탑 쪽',20);
-  panelText(489,647,'부하측 · 다음 철탑 쪽',20);
-  path('M78 787 H562 M552 779 L562 787 L552 795','#b5c8d7',2.2);
-  panelText(320,810,'정방향  1호 → 2호',18);
-  path('M286 777 L308 674 H332 L354 777 M292 750 H348 M299 719 H341 M308 674 L348 750 M332 674 L292 750','#9ab4c6',2.1);
-  if(s.lampUnits){
-    for(const [level,y] of [['upper',687],['lower',754]]){
-      for(const [side,xx] of [['Supply',151],['Load',489]]){
-        const intensity=s.lampUnits[level+side];
-        if(installedLamp(intensity)){
-          path('M'+xx+' '+y+' H'+(side==='Supply'?291:349),'#87a6bb',1.5);
-          drawLamp(xx,y,intensity);
-        }
-      }
-      panelText(320,y+6,level==='upper'?'상부등':'하부등',18);
-    }
-  }else panelText(320,733,'기존 기록 · 전원측 및 부하측 미확인',18);
+// A and D are the near feet, B and C the far feet in the forward view.
+const corners=[
+  ['A',front(levels[0],-1),[195,545]],
+  ['B',rear(levels[0],-1),[249,478]],
+  ['C',rear(levels[0],1),[476,485]],
+  ['D',front(levels[0],1),[451,545]]
+];
+for(const [name,foot,[labelX,labelY]] of corners){
+  segment(foot,[labelX,labelY-8],'#d1e0e8',1.5);
+  text(labelX,labelY,name,'#263f50',23);
+}
+
+// In this projection, the near lamp is lower and to the left of the far lamp.
+const lampPositions=[
+  ['upperSupply',307,115,'상부등 전원측'],
+  ['upperLoad',333,99,'상부등 부하측'],
+  ['lowerSupply',329,457,'하부등 전원측'],
+  ['lowerLoad',360,437,'하부등 부하측']
+];
+if(s.lampUnits){
+  for(const [key,xx,y,label] of lampPositions){
+    const intensity=s.lampUnits[key];
+    if(!installedLamp(intensity))continue;
+    x+='<g aria-label="'+label+'"><title>'+label+'</title>';
+    drawLamp(xx,y,intensity);
+    x+='</g>';
+  }
+}else if(installedLamp(s.lightIntensity)){
+  text(320,134,'기존 항공장애등 · 위치 미확인','#294559',16);
 }
 x+='</svg>';return x;
 }
