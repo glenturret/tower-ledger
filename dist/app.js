@@ -38,7 +38,7 @@ function selected(name){return document.querySelector('[name="'+name+'"]:checked
 function readGround(){const count=Number(selected('groundCount'));return {count,direction:'1호→2호 정방향',...(count===1?{position:'중앙',single:$('groundSingle').value}:count===2?{left:$('groundLeft').value,right:$('groundRight').value}:{})};}
 function groundVisibility(){$('singleGround').hidden=selected('groundCount')!=='1';$('doubleGround').hidden=selected('groundCount')!=='2';}
 function fillGround(g){document.querySelectorAll('[name="groundCount"]').forEach(el=>el.checked=el.value===String(g?.count??2));$('groundSingle').value=g?.single||'';$('groundLeft').value=g?.left||'';$('groundRight').value=g?.right||'';groundVisibility();}
-document.querySelectorAll('[data-ground]').forEach(b=>b.onclick=()=>{const preset=b.dataset.ground;fillGround(preset==='single'?{count:1,single:'OPGW',position:''}:{count:2,left:preset==='left'?'OPGW':'GW',right:preset==='left'?'GW':'OPGW'});dirty=true;preview();});
+document.querySelector('[data-ground="single"]').onclick=()=>{fillGround({count:1,single:'OPGW'});dirty=true;preview();};
 
 function readLamps(){return Object.fromEntries(M.LAMP_KEYS.map(key=>[key,$(key).value]));}
 
