@@ -177,6 +177,18 @@ if(s.lampUnits){
 }else if(installedLamp(s.lightIntensity)){
   text(320,134,'기존 항공장애등 · 위치 미확인','#294559',16);
 }
+const oneSide=s.circuitOneSide;
+if(['left','right'].includes(oneSide)&&(!fourCircuits||highlighted)){
+  const y=fourCircuits?(highlighted==='upper'?199:346):267;
+  for(const [side,cx] of [['left',105],['right',548]]){
+    const number=side===oneSide?1:2;
+    const sideLabel=side==='left'?'좌측':'우측';
+    x+='<g data-circuit-side="'+side+'" aria-label="'+sideLabel+' #'+number+'">';
+    x+='<rect x="'+(cx-31)+'" y="'+(y-21)+'" width="62" height="42" rx="10" fill="#243d51" stroke="#ffdc86" stroke-width="2"/>';
+    text(cx,y+9,'#'+number,'#fff3ce',27);
+    x+='</g>';
+  }
+}
 x+='</svg>';return x;
 }
 function mount(el){const id='elevation-'+(++seq);return {update(s){el.innerHTML=diagram(s,id);
