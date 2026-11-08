@@ -50,28 +50,51 @@ for(let i=0;i<levels.length-1;i++){
   segment(front(lower,-1),front(lower,1),'#627f8d',2.6);
 }
 segment(front(levels.at(-1),-1),front(levels.at(-1),1),'#526f7e',5);
-for(const [y,w] of [[208,122],[288,137],[370,151]]){
-  const left=[320-w,y],right=[320+w,y],peak=[320,y-23];
-  const backLeft=[left[0]+18,y-12],backRight=[right[0]+18,y-12],backPeak=[338,y-35];
-  face([left,backLeft,backPeak,peak],'#e4edf0');
-  face([peak,backPeak,backRight,right],'#c6d8df');
-  segment(backLeft,backRight,'#8ca6b2',2.5);
-  path('M'+point(left)+' L'+point(peak)+' L'+point(right)+' Z','#627f8e',3.2,'#dce7e9');
-  for(const offset of [-.55,0,.55]){
-    const base=[320+w*offset,y];
-    segment(base,[320+w*(offset+.23),y-23*(1-Math.abs(offset+.23))],'#829fab',2);
+const fourCircuits=s.towerCircuitCount===4;
+const armLevels=fourCircuits?[[153,100],[199,108],[245,117],[300,137],[346,146],[392,155]]:[[190,113],[267,133],[344,153]];
+const armDepth=fourCircuits?16:23;
+function bodyHalfWidth(y){
+  for(let i=0;i<levels.length-1;i++){
+    const [low,wide]=levels[i], [high,narrow]=levels[i+1];
+    if(y>=high&&y<=low)return narrow+(wide-narrow)*(y-high)/(low-high);
   }
-  segment(left,right,'#4c6e7e',4);
-  for(const tip of [left,right])circle(tip[0],tip[1],3,'#3e5d6d');
+  return levels.at(-1)[1];
 }
+for(const [y,width] of armLevels){
+  x+='<g data-kind="crossarm-level">';
+  for(const side of [-1,1]){
+    const rootX=320+side*bodyHalfWidth(y);
+    const tipX=320+side*width;
+    const lower=t=>[rootX+(tipX-rootX)*t,y];
+    const upper=t=>[rootX+(tipX-rootX)*t,y-armDepth+(armDepth-4)*t];
+    const back=([xx,yy])=>[xx+10,yy-8];
+    segment(back(lower(0)),back(lower(1)),'#9db7c5',2.3);
+    segment(back(upper(0)),back(upper(1)),'#a8c0ca',2.3);
+    for(let i=0;i<4;i++){
+      const t=i/4,next=(i+1)/4;
+      segment(back(lower(t)),back(upper(next)),'#85a5b6',1.4);
+      segment(upper(t),back(upper(t)),'#b1c9d4',1.5);
+      segment(lower(t),upper(t),'#789cac',1.7);
+      segment(i%2?upper(t):lower(t),i%2?lower(next):upper(next),'#b7ced9',2.1);
+    }
+    segment(upper(0),upper(1),'#c2d5dd',3.2);
+    segment(lower(0),lower(1),'#abc4d0',3.4);
+    segment(upper(1),lower(1),'#89a9ba',2.3);
+    segment(lower(1),back(lower(1)),'#b3cad6',2.3);
+    circle(tipX,y,3.4,'#d3e3e9');
+  }
+  x+='</g>';
+}
+text(517,115,s.towerCircuitCount?s.towerCircuitCount+'회선':'2회선 예시','#263f50',19);
 path('M280 163 L268 93 L305 145 M360 163 L372 93 L335 145','#7897a4',4);
 for(const xx of [228,412]){x+='<rect x="'+(xx-13)+'" y="510" width="26" height="15" rx="2" fill="#93a5a8"/>';}
 const g=s.groundWires;const slots=g?(g.count===1?[[320,g.single,'중앙']]:[[268,g.left,'좌'],[372,g.right,'우']]):[];
 for(const [xx,type,pos] of slots){const c=type==='OPGW'?'#387d9e':'#8d7862';path('M'+(xx-26)+' 62 L'+xx+' 93 L'+(xx+12)+' 119',c,3);circle(xx,93,5,c);text(xx<320?164:xx>320?476:320,81,pos+' '+type,c,22);}
 if(!g)text(320,62,'가공지선 미등록','#8ca0a8',20);
 const count=s.stringCount||0;
-if(s.insulatorType&&count){for(const [y,w] of [[208,122],[288,137],[370,151]])for(const side of [-1,1]){const xx=320+side*w;for(let n=0;n<count;n++){const offset=count===2?(n?7:-7):0;const horizontal=s.insulatorType==='내장';const cx=xx+(horizontal?side*24:offset),cy=y+(horizontal?offset:25);x+='<g data-kind="insulator-string" transform="translate('+cx+' '+cy+') rotate('+(horizontal?90:0)+')">';path('M0 -24 V24','#58777c',2.5);for(let j=-18;j<=18;j+=6)x+='<ellipse cx="0" cy="'+j+'" rx="8" ry="2.7" fill="url(#'+id+'-glass)" stroke="#4f8579" stroke-width=".8"/>';x+='</g>';}
-const ex=xx+(s.insulatorType==='내장'?side*49:0),ey=y+(s.insulatorType==='현수'?51:0);circle(ex,ey,4,'#45616d');path('M'+ex+' '+ey+' l'+side*25+' 8','#93a7af',2);}}
+const stringScale=fourCircuits?.68:1;
+if(s.insulatorType&&count){for(const [y,w] of armLevels)for(const side of [-1,1]){const xx=320+side*w;for(let n=0;n<count;n++){const offset=count===2?(n?7:-7):0;const horizontal=s.insulatorType==='내장';const cx=xx+(horizontal?side*24*stringScale:offset),cy=y+(horizontal?offset:25*stringScale);x+='<g data-kind="insulator-string" transform="translate('+cx+' '+cy+') rotate('+(horizontal?90:0)+') scale('+stringScale+')">';path('M0 -24 V24','#58777c',2.5);for(let j=-18;j<=18;j+=6)x+='<ellipse cx="0" cy="'+j+'" rx="8" ry="2.7" fill="url(#'+id+'-glass)" stroke="#4f8579" stroke-width=".8"/>';x+='</g>';}
+const ex=xx+(s.insulatorType==='내장'?side*49*stringScale:0),ey=y+(s.insulatorType==='현수'?51*stringScale:0);circle(ex,ey,4,'#45616d');path('M'+ex+' '+ey+' q'+side*30+' 6 '+side*62+' 21','#c2d3db',2);}}
 function drawLamp(xx,y,intensity){
   const high=intensity==='고광도';
   circle(xx,y,high?15:intensity==='중광도'?10:8,high?'#415e75':'#fce4bd');
