@@ -76,12 +76,31 @@ function drawLamp(xx,y,intensity){
   circle(xx,y,high?15:intensity==='중광도'?10:8,high?'#415e75':'#fce4bd');
   circle(xx,y,high?8:5,high?'#ffffff':'#d86e56',high?'signal high-intensity':'signal');
 }
+const installedLamp=intensity=>['고광도','중광도','저광도'].includes(intensity);
 if(s.lampUnits){
-  for(const [key,xx,y] of [['upperSupply',307,108],['upperLoad',333,108],['lowerSupply',307,405],['lowerLoad',333,405]]){
-    const intensity=s.lampUnits[key];
-    if(['고광도','중광도','저광도'].includes(intensity))drawLamp(xx,y,intensity);
+  const levels=[{key:'upper',title:'상부',left:307,right:333,y:108,labelY:133},
+    {key:'lower',title:'하부',left:261,right:379,y:405,labelY:434}];
+  for(const level of levels){
+    const supply=s.lampUnits[level.key+'Supply'];
+    const load=s.lampUnits[level.key+'Load'];
+    if(!installedLamp(supply)&&!installedLamp(load))continue;
+    const supplySide=s.lampSides?.[level.key];
+    if(!['left','right'].includes(supplySide)){
+      text(320,level.labelY,level.title+'등 위치 미지정','#294559',17);
+      continue;
+    }
+    const loadSide=supplySide==='left'?'right':'left';
+    for(const [side,role,intensity] of [[supplySide,'전원측',supply],[loadSide,'부하측',load]]){
+      if(!installedLamp(intensity))continue;
+      const xx=level[side];
+      const labelX=side==='left'?131:509;
+      const leaderEnd=side==='left'?197:443;
+      path('M'+xx+' '+level.y+' L'+leaderEnd+' '+(level.labelY-6),'#d7e9f3',1.8);
+      drawLamp(xx,level.y,intensity);
+      text(labelX,level.labelY,level.title+' '+role,'#294559',19);
+    }
   }
-}else if(s.lightIntensity)drawLamp(320,107,s.lightIntensity);
+}else if(s.lightIntensity)text(320,133,'항공장애등 위치 미지정','#294559',17);
 
 // The rows show quantity by color. Their positions are schematic.
 function drawMarkerRow(y,count,color){
