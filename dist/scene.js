@@ -85,6 +85,12 @@ for(const [y,width] of armLevels){
   }
   x+='</g>';
 }
+if(fourCircuits){
+  for(const [label,top,bottom] of [['상부',153,245],['하부',300,392]]){
+    path('M56 '+top+' H45 V'+bottom+' H56','#d6e5ee',2);
+    text(24,(top+bottom)/2+5,label,'#263f50',15);
+  }
+}
 text(517,115,s.towerCircuitCount?s.towerCircuitCount+'회선':'2회선 예시','#263f50',19);
 path('M280 163 L268 93 L305 145 M360 163 L372 93 L335 145','#7897a4',4);
 for(const xx of [228,412]){x+='<rect x="'+(xx-13)+'" y="510" width="26" height="15" rx="2" fill="#93a5a8"/>';}
@@ -151,6 +157,21 @@ if(s.lampUnits){
 }
 x+='</svg>';return x;
 }
-function mount(el){const id='elevation-'+(++seq);return {update(s){el.innerHTML=diagram(s,id);el.setAttribute('aria-label','정방향 철탑 개념도. '+(s.insulatorType||'애자련 미등록')+' '+(s.stringCount?s.stringCount+'련':'')+' / '+(s.terrain||'지형 미등록'));},reset(){}};}
+function mount(el){const id='elevation-'+(++seq);return {update(s){el.innerHTML=diagram(s,id);
+  if(s.towerCircuitCount===4){
+    const layout=document.createElement('div');
+    layout.className='pairedLineKey';
+    for(const [position,title] of [['upper','상부 2회선'],['lower','하부 2회선']]){
+      const row=document.createElement('div');
+      const label=document.createElement('strong');
+      label.textContent=title;
+      const value=document.createElement('span');
+      value.textContent=s.pairedLines?.[position]||'선로 미지정';
+      row.append(label,value);
+      layout.append(row);
+    }
+    el.append(layout);
+  }
+  el.setAttribute('aria-label','정방향 철탑 개념도. '+(s.insulatorType||'애자련 미등록')+' '+(s.stringCount?s.stringCount+'련':'')+' / '+(s.terrain||'지형 미등록'));},reset(){}};}
 if(typeof module!=='undefined')module.exports={diagram};else root.TowerScene={mount};
 })(globalThis);

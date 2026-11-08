@@ -25,3 +25,5 @@ fieldset input[type=radio]{display:inline-block;width:20px;height:20px;margin:0;
 
 .elevation svg text{paint-order:stroke;stroke:#f2f7f8;stroke-width:2.8px;stroke-linejoin:round}.elevation svg .high-intensity{stroke:#bad5eb;stroke-width:1.5px;filter:drop-shadow(0 0 5px #f5fbff)}
 
+
+#pairedLineFields label{display:block;margin:0}.pairedLineKey{display:grid;gap:5px;padding:10px 12px;background:#eef4f7;color:#263f50}.pairedLineKey>div{display:grid;grid-template-columns:6em minmax(0,1fr);gap:6px}.pairedLineKey span{overflow-wrap:anywhere}
