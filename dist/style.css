@@ -27,3 +27,5 @@ fieldset input[type=radio]{display:inline-block;width:20px;height:20px;margin:0;
 
 
 #pairedLineFields label{display:block;margin:0}.pairedLineKey{display:grid;gap:5px;padding:10px 12px;background:#eef4f7;color:#263f50}.pairedLineKey>div{display:grid;grid-template-columns:6em minmax(0,1fr);gap:6px}.pairedLineKey span{overflow-wrap:anywhere}
+
+.pairedLineKey>.current{padding:4px 6px;border-radius:6px;background:#ffebad;color:#443215;font-weight:700}

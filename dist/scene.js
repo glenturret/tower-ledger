@@ -1,6 +1,15 @@
 /* Front-oriented illustrative elevation, not a site-specific engineering drawing. */
 (function(root){
 let seq=0;
+function lineKey(name){
+  return (name||'').trim().replace(/^\d+\s*kV\s*/i,'').replace(/[\s\u2010-\u2014\u2212-]/g,'').toLowerCase();
+}
+function activePosition(s){
+  if(s.towerCircuitCount!==4)return;
+  const key=lineKey(s.activeLineName);
+  const matches=['upper','lower'].filter(position=>key&&lineKey(s.pairedLines?.[position])===key);
+  if(matches.length===1)return matches[0];
+}
 function diagram(s,id='tower'){
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const installedLamp=intensity=>['고광도','중광도','저광도'].includes(intensity);
@@ -53,6 +62,11 @@ segment(front(levels.at(-1),-1),front(levels.at(-1),1),'#526f7e',5);
 const fourCircuits=s.towerCircuitCount===4;
 const armLevels=fourCircuits?[[153,100],[199,108],[245,117],[300,137],[346,146],[392,155]]:[[190,113],[267,133],[344,153]];
 const armDepth=fourCircuits?16:23;
+const highlighted=activePosition(s);
+if(highlighted){
+  const top=highlighted==='upper'?119:266;
+  x+='<rect data-highlight="'+highlighted+'" x="62" y="'+top+'" width="516" height="135" rx="13" fill="#493b22" fill-opacity=".25" stroke="#ffd477" stroke-width="2"/>';
+}
 function bodyHalfWidth(y){
   for(let i=0;i<levels.length-1;i++){
     const [low,wide]=levels[i], [high,narrow]=levels[i+1];
@@ -60,7 +74,8 @@ function bodyHalfWidth(y){
   }
   return levels.at(-1)[1];
 }
-for(const [y,width] of armLevels){
+for(const [i,[y,width]] of armLevels.entries()){
+  const lit=highlighted===(i<3?'upper':'lower');
   x+='<g data-kind="crossarm-level">';
   for(const side of [-1,1]){
     const rootX=320+side*bodyHalfWidth(y);
@@ -77,8 +92,8 @@ for(const [y,width] of armLevels){
       segment(lower(t),upper(t),'#789cac',1.7);
       segment(i%2?upper(t):lower(t),i%2?lower(next):upper(next),'#b7ced9',2.1);
     }
-    segment(upper(0),upper(1),'#c2d5dd',3.2);
-    segment(lower(0),lower(1),'#abc4d0',3.4);
+    segment(upper(0),upper(1),lit?'#ffe6a3':'#c2d5dd',lit?4:3.2);
+    segment(lower(0),lower(1),lit?'#ffd477':'#abc4d0',lit?4.8:3.4);
     segment(upper(1),lower(1),'#89a9ba',2.3);
     segment(lower(1),back(lower(1)),'#b3cad6',2.3);
     circle(tipX,y,3.4,'#d3e3e9');
@@ -86,6 +101,13 @@ for(const [y,width] of armLevels){
   x+='</g>';
 }
 if(fourCircuits){
+  if(highlighted){
+    const y=highlighted==='upper'?115:262;
+    const name=s.activeLineName.replace(/^\d+\s*kV\s*/i,'');
+    const label=highlighted==='upper'?'\uc0c1\ubd80':'\ud558\ubd80';
+    x+='<rect x="62" y="'+(y-23)+'" width="216" height="30" rx="8" fill="#ffdc86"/>';
+    text(170,y,label+' \u00b7 '+name,'#302410',23);
+  }
   for(const [label,top,bottom] of [['상부',153,245],['하부',300,392]]){
     path('M56 '+top+' H45 V'+bottom+' H56','#d6e5ee',2);
     text(24,(top+bottom)/2+5,label,'#263f50',15);
@@ -163,6 +185,7 @@ function mount(el){const id='elevation-'+(++seq);return {update(s){el.innerHTML=
     layout.className='pairedLineKey';
     for(const [position,title] of [['upper','상부 2회선'],['lower','하부 2회선']]){
       const row=document.createElement('div');
+      if(position===activePosition(s))row.className='current';
       const label=document.createElement('strong');
       label.textContent=title;
       const value=document.createElement('span');
