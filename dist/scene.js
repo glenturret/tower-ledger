@@ -3,7 +3,7 @@
 let seq=0;
 function diagram(s,id='tower'){
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let x='<svg viewBox="0 0 640 570" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="철탑 정면 개념도"><defs><linearGradient id="'+id+'-sky" x2="0" y2="1"><stop stop-color="#edf5f8"/><stop offset="1" stop-color="#ffffff"/></linearGradient><linearGradient id="'+id+'-steel"><stop stop-color="#486777"/><stop offset=".5" stop-color="#9eb6bf"/><stop offset="1" stop-color="#405e6b"/></linearGradient><linearGradient id="'+id+'-glass"><stop stop-color="#e5f3ed"/><stop offset=".45" stop-color="#72a99a"/><stop offset="1" stop-color="#366a61"/></linearGradient></defs><rect width="640" height="570" rx="20" fill="url(#'+id+'-sky)"/>';
+let x='<svg viewBox="0 0 640 570" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="철탑 입체 개념도"><defs><linearGradient id="'+id+'-sky" x2="0" y2="1"><stop stop-color="#edf5f8"/><stop offset="1" stop-color="#ffffff"/></linearGradient><linearGradient id="'+id+'-steel"><stop stop-color="#486777"/><stop offset=".5" stop-color="#9eb6bf"/><stop offset="1" stop-color="#405e6b"/></linearGradient><linearGradient id="'+id+'-glass"><stop stop-color="#e5f3ed"/><stop offset=".45" stop-color="#72a99a"/><stop offset="1" stop-color="#366a61"/></linearGradient></defs><rect width="640" height="570" rx="20" fill="url(#'+id+'-sky)"/>';
 const path=(d,c,w=2,fill='none')=>{x+='<path d="'+d+'" stroke="'+c+'" stroke-width="'+w+'" fill="'+fill+'" stroke-linecap="round" stroke-linejoin="round"/>';};
 const text=(xx,y,t,c='#536c77',size=20)=>{x+='<text x="'+xx+'" y="'+y+'" text-anchor="middle" fill="'+c+'" font-size="'+size+'" font-family="system-ui,sans-serif">'+esc(t)+'</text>';};
 const circle=(xx,y,r,c,cls='')=>{x+='<circle '+(cls?'class="'+cls+'"':'')+' cx="'+xx+'" cy="'+y+'" r="'+r+'" fill="'+c+'"/>';};
@@ -12,12 +12,49 @@ else if(s.terrain==='논'){path('M0 480 H640 V570 H0Z','none',0,'#dce6c9');for(l
 else if(s.terrain==='도심지'){for(const [xx,y,w] of [[25,410,65],[105,441,40],[485,420,55],[556,390,65]]){x+='<rect x="'+xx+'" y="'+y+'" width="'+w+'" height="'+(515-y)+'" rx="3" fill="#d1dee2"/>';for(let yy=y+14;yy<500;yy+=18)for(let a=xx+10;a<xx+w-6;a+=16)x+='<rect x="'+a+'" y="'+yy+'" width="6" height="8" fill="#9ab2bd"/>';}path('M0 524 H640','#b3c5cb',24);path('M0 524 H640','#f9fbf9',2);}
 else path('M0 515 Q320 495 640 515 V570 H0Z','none',0,'#e4ece6');
 x+='<ellipse cx="320" cy="529" rx="117" ry="13" fill="#365160" opacity=".09"/>';
-// A restrained offset rear frame gives depth without obstructing the front elevation.
-path('M236 518 L296 155 L310 112 H330 L344 155 L404 518','#b7c9cf',4);
-const levels=[[512,92],[433,72],[352,51],[274,34],[201,23],[145,15]];
-for(let i=0;i<levels.length-1;i++){const [y,w]=levels[i],[yy,ww]=levels[i+1];path('M'+(320-w)+' '+y+' L'+(320+ww)+' '+yy+' M'+(320+w)+' '+y+' L'+(320-ww)+' '+yy,'#8ba5ae',2);path('M'+(320-w)+' '+y+' H'+(320+w),'#6f8d99',2.6);}
-path('M228 512 L305 145 L312 111 H328 L335 145 L412 512','url(#'+id+'-steel)',6);path('M228 512 H412','#627f8d',4);
-for(const [y,w] of [[208,122],[288,137],[370,151]]){path('M'+(320-w)+' '+y+' L320 '+(y-23)+' L'+(320+w)+' '+y+' Z','url(#'+id+'-steel)',4,'#dce7e9');path('M'+(320-w)+' '+y+' H'+(320+w),'#527381',4);}
+// The front attachment points stay fixed so left and right remain easy to compare.
+const levels=[[512,92],[433,72],[352,51],[274,34],[201,23],[145,15],[111,8]];
+const front=([y,w],side)=>[320+side*w,y];
+const rear=([y,w],side)=>[320+side*w*.76+13+w*.28,y-5-w*.20];
+const point=([px,py])=>px.toFixed(1)+' '+py.toFixed(1);
+const segment=(from,to,color,width)=>path('M'+point(from)+' L'+point(to),color,width);
+const face=(vertices,color)=>path('M'+vertices.map(point).join(' L')+' Z','none',0,color);
+for(const side of [-1,1]){
+  const [footX,footY]=rear(levels[0],side);
+  face([[footX-13,footY+2],[footX+5,footY-4],[footX+18,footY+1],[footX,footY+8]],'#a9babd');
+  face([[footX-13,footY+2],[footX,footY+8],[footX,footY+16],[footX-13,footY+11]],'#81969b');
+}
+for(let i=0;i<levels.length-1;i++){
+  const lower=levels[i],upper=levels[i+1];
+  face([front(lower,1),rear(lower,1),rear(upper,1),front(upper,1)],'#d5e2e6');
+  for(const side of [-1,1]){
+    segment(rear(lower,side),rear(upper,side),'#8ca4ae',3);
+    segment(rear(lower,side),rear(upper,-side),'#b5c8ce',1.6);
+    segment(front(lower,side),rear(lower,side),'#78939e',2.5);
+    segment(front(lower,side),rear(upper,side),'#7f9ba5',2);
+  }
+  segment(rear(lower,-1),rear(lower,1),'#9eb4bc',1.8);
+  for(const side of [-1,1]){
+    segment(front(lower,side),front(upper,-side),'#6d8d9a',2.2);
+    segment(front(lower,side),front(upper,side),'url(#'+id+'-steel)',6);
+  }
+  segment(front(lower,-1),front(lower,1),'#627f8d',2.6);
+}
+segment(front(levels.at(-1),-1),front(levels.at(-1),1),'#526f7e',5);
+for(const [y,w] of [[208,122],[288,137],[370,151]]){
+  const left=[320-w,y],right=[320+w,y],peak=[320,y-23];
+  const backLeft=[left[0]+18,y-12],backRight=[right[0]+18,y-12],backPeak=[338,y-35];
+  face([left,backLeft,backPeak,peak],'#e4edf0');
+  face([peak,backPeak,backRight,right],'#c6d8df');
+  segment(backLeft,backRight,'#8ca6b2',2.5);
+  path('M'+point(left)+' L'+point(peak)+' L'+point(right)+' Z','#627f8e',3.2,'#dce7e9');
+  for(const offset of [-.55,0,.55]){
+    const base=[320+w*offset,y];
+    segment(base,[320+w*(offset+.23),y-23*(1-Math.abs(offset+.23))],'#829fab',2);
+  }
+  segment(left,right,'#4c6e7e',4);
+  for(const tip of [left,right])circle(tip[0],tip[1],3,'#3e5d6d');
+}
 path('M280 163 L268 93 L305 145 M360 163 L372 93 L335 145','#7897a4',4);
 for(const xx of [228,412]){x+='<rect x="'+(xx-13)+'" y="510" width="26" height="15" rx="2" fill="#93a5a8"/>';}
 const g=s.groundWires;const slots=g?(g.count===1?[[320,g.single,'중앙']]:[[268,g.left,'좌'],[372,g.right,'우']]):[];

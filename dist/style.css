@@ -18,3 +18,5 @@ fieldset input[type=radio]{display:inline-block;width:20px;height:20px;margin:0;
 
 .equipmentGroup{margin:8px 0;border:1px solid #dce6de;border-radius:12px;background:#fff}.equipmentGroup>summary{cursor:pointer;padding:14px;font-weight:700}.equipmentGroup>.partrow{width:calc(100% - 20px);margin:0 10px 8px}
 
+
+.equipmentSection{margin:16px 0}.equipmentSection h3{margin:0 0 7px;font-size:14px;color:#476358}.equipmentSection .equipmentGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.equipmentSection:first-child .equipmentGrid{grid-template-columns:1fr}.equipmentSection .partrow{margin:0;min-width:0;min-height:74px;align-items:flex-start;flex-direction:column;gap:4px;padding:11px 12px}.equipmentSection .partrow .value{max-width:100%;text-align:left;font-size:13px}.equipmentSection .partrow small{font-size:11px}.sceneWrap{box-shadow:0 6px 18px #173c4810}.sceneToolbar{justify-content:space-between}.sceneToolbar .directionLabel{flex:1 1 190px}

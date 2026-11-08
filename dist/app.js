@@ -80,9 +80,21 @@ async function saveLayout(side){
 function renderParts(){
   const list=$('partList');
   list.replaceChildren();
-  for(const name of M.PARTS){
-    if(name==='피뢰기')continue;
-    list.append(equipmentButton(name,name,latest(name)));
+  const groups=[
+    ['기본정보',['철탑 기본정보']],
+    ['설비',['가공지선','애자련','항공구','항공등']],
+    ['주변 환경',['지형','부지']]
+  ];
+  for(const [title,parts] of groups){
+    const section=document.createElement('section');
+    section.className='equipmentSection';
+    const heading=document.createElement('h3');
+    heading.textContent=title;
+    const grid=document.createElement('div');
+    grid.className='equipmentGrid';
+    for(const name of parts)grid.append(equipmentButton(name,name,latest(name)));
+    section.append(heading,grid);
+    list.append(section);
   }
 }
 function equipmentButton(name,title,record,number){
