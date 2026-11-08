@@ -63,9 +63,32 @@ if(!g)text(320,62,'가공지선 미등록','#8ca0a8',20);
 const count=s.stringCount||0;
 if(s.insulatorType&&count){for(const [y,w] of [[208,122],[288,137],[370,151]])for(const side of [-1,1]){const xx=320+side*w;for(let n=0;n<count;n++){const offset=count===2?(n?7:-7):0;const horizontal=s.insulatorType==='내장';const cx=xx+(horizontal?side*24:offset),cy=y+(horizontal?offset:25);x+='<g data-kind="insulator-string" transform="translate('+cx+' '+cy+') rotate('+(horizontal?90:0)+')">';path('M0 -24 V24','#58777c',2.5);for(let j=-18;j<=18;j+=6)x+='<ellipse cx="0" cy="'+j+'" rx="8" ry="2.7" fill="url(#'+id+'-glass)" stroke="#4f8579" stroke-width=".8"/>';x+='</g>';}
 const ex=xx+(s.insulatorType==='내장'?side*49:0),ey=y+(s.insulatorType==='현수'?51:0);circle(ex,ey,4,'#45616d');path('M'+ex+' '+ey+' l'+side*25+' 8','#93a7af',2);}}
-if(s.lampUnits){for(const [key,xx,y] of [['upperSupply',307,108],['upperLoad',333,108],['lowerSupply',307,195],['lowerLoad',333,195]]){const v=s.lampUnits[key];if(['고광도','중광도','저광도'].includes(v)){circle(xx,y,v==='고광도'?13:v==='중광도'?10:8,'#fce4bd');circle(xx,y,5,'#d86e56','signal');}}}else if(s.lightIntensity){circle(320,107,s.lightIntensity==='고광도'?17:12,'#fce4bd');circle(320,107,6,s.lightIntensity==='고광도'?'#eab64f':'#d86e56','signal');}
-// Quantity strip intentionally does not assert actual marker-ball installation positions.
-if(s.ballCount){path('M38 31 Q320 48 602 31','#a2b4bc',1.5);for(let i=0;i<s.ballCount;i++){const t=(i+.5)/s.ballCount;circle(38+564*t,31+34*t*(1-t),s.ballCount>40?2.5:5,i%2?'#e6c78c':'#dc854a','marker-ball');}}
+function drawLamp(xx,y,intensity){
+  const high=intensity==='고광도';
+  circle(xx,y,high?13:intensity==='중광도'?10:8,high?'#dbe9f3':'#fce4bd');
+  circle(xx,y,5,high?'#ffffff':'#d86e56',high?'signal high-intensity':'signal');
+}
+if(s.lampUnits){
+  for(const [key,xx,y] of [['upperSupply',307,108],['upperLoad',333,108],['lowerSupply',307,405],['lowerLoad',333,405]]){
+    const intensity=s.lampUnits[key];
+    if(['고광도','중광도','저광도'].includes(intensity))drawLamp(xx,y,intensity);
+  }
+}else if(s.lightIntensity)drawLamp(320,107,s.lightIntensity);
+
+// The rows show quantity by color. Their positions are schematic.
+function drawMarkerRow(y,count,color){
+  path('M38 '+y+' Q320 '+(y+17)+' 602 '+y,'#a2b4bc',1.5);
+  for(let i=0;i<count;i++){
+    const t=(i+.5)/count;
+    circle(38+564*t,y+34*t*(1-t),count>40?2.5:5,color||(i%2?'#ffffff':'#dc854a'),'marker-ball');
+  }
+}
+if(s.ballCount){
+  if(s.groundWires?.count===2){
+    drawMarkerRow(17,Math.ceil(s.ballCount/2),'#ffffff');
+    drawMarkerRow(41,Math.floor(s.ballCount/2),'#dc854a');
+  }else drawMarkerRow(31,s.ballCount);
+}
 text(320,558,s.terrain||'지형 미등록','#5b786b',22);
 x+='</svg>';return x;
 }

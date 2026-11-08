@@ -13,7 +13,7 @@ function summary(s){return layoutLabel()+' · '+(s.towerType||s.towerHeight?'철
 function render(){
  $('lineCards').replaceChildren();M.LINES.forEach(l=>{const b=document.createElement('button');b.className='linecard';const title=document.createElement('strong');title.textContent=l.name;const detail=document.createElement('span');detail.textContent=l.count+'기 · 등록 '+new Set(records.filter(r=>r.lineId===l.id).map(r=>r.tower)).size+'기';const arrow=document.createElement('span');arrow.textContent='›';b.append(title,detail,arrow);b.onclick=()=>{lineId=l.id;circuit=1;$('search').value='';show('listView');};$('lineCards').append(b);});
  $('leftCircuit').value=circuitLayouts[lineId]||'';$('rightCircuit').textContent=oppositeCircuit($('leftCircuit').value);$('circuitLayoutSummary').textContent=layoutLabel();$('lineTitle').textContent=line().name;$('towerLine').textContent=line().name;$('towerTitle').textContent=tower+'호 철탑';$('towerCount').textContent=line().count;$('recorded').textContent=new Set(records.filter(r=>r.lineId===lineId).map(r=>r.tower)).size;
- $('towerGrid').replaceChildren();for(let n=1;n<=line().count;n++){if($('search').value&&!String(n).includes($('search').value.trim()))continue;const done=records.some(r=>r.lineId===lineId&&r.tower===n),b=document.createElement('button');b.className='towercell'+(done?' done':'');const title=document.createElement('span');title.textContent=n+'호';const small=document.createElement('small');small.textContent=done?'● 기록 있음':'○ 기록 없음';b.append(title,small);b.onclick=()=>{tower=n;mainScene.reset();show('towerView');};$('towerGrid').append(b);}if(!$('towerGrid').children.length)$('towerGrid').textContent='해당 호수가 없습니다.';
+ $('towerGrid').replaceChildren();for(let n=1;n<=line().count;n++){if($('search').value&&!String(n).includes($('search').value.trim()))continue;const done=records.some(r=>r.lineId===lineId&&r.tower===n),b=document.createElement('button');b.className='towercell'+(done?' done':'');const title=document.createElement('span');title.textContent=n+'호';const small=document.createElement('small');small.textContent=done?'● 기록 있음':'○ 기록 없음';b.append(title,small);b.onclick=()=>openTower(n);$('towerGrid').append(b);}if(!$('towerGrid').children.length)$('towerGrid').textContent='해당 호수가 없습니다.';
  const state=M.scene(scopedRecords(),lineId,tower);mainScene.update(state);$('sceneSummary').textContent=summary(state);
  renderParts();
 }
@@ -150,4 +150,21 @@ $('saveArrester').onclick=async()=>{
     saving=false;
     $('saveArrester').disabled=false;
   }
+};
+
+function openTower(number){
+  tower=number;
+  mainScene.reset();
+  show('towerView');
+}
+$('towerJump').onsubmit=event=>{
+  event.preventDefault();
+  const value=$('search').value.trim();
+  const number=Number(value);
+  if(!/^\d+$/.test(value)||number<1||number>line().count){
+    toast('1~'+line().count+' 사이의 철탑 번호를 입력해주세요.');
+    return;
+  }
+  $('search').blur();
+  openTower(number);
 };
