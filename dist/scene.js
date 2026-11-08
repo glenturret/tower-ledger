@@ -77,6 +77,7 @@ if(s.lampUnits){
 
 // The rows show quantity by color. Their positions are schematic.
 function drawMarkerRow(y,count,color){
+  count=Math.min(100,Math.max(0,Math.floor(count)||0));
   path('M38 '+y+' Q320 '+(y+17)+' 602 '+y,'#a2b4bc',1.5);
   for(let i=0;i<count;i++){
     const t=(i+.5)/count;
@@ -84,7 +85,13 @@ function drawMarkerRow(y,count,color){
   }
 }
 if(s.ballCount){
-  if(s.groundWires?.count===2){
+  if(s.groundWires?.count===2&&s.ballCircuits){
+    s.ballCircuits.forEach((row,index)=>{
+      const y=17+index*24;
+      drawMarkerRow(y,row.count,row.color==='white'?'#ffffff':'#dc854a');
+      text(20,y+5,'#'+(index+1),'#536c77',14);
+    });
+  }else if(s.groundWires?.count===2){
     drawMarkerRow(17,Math.ceil(s.ballCount/2),'#ffffff');
     drawMarkerRow(41,Math.floor(s.ballCount/2),'#dc854a');
   }else drawMarkerRow(31,s.ballCount);
