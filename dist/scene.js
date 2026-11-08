@@ -84,17 +84,14 @@ function drawMarkerRow(y,count,color){
     circle(38+564*t,y+34*t*(1-t),count>40?2.5:5,color||(i%2?'#ffffff':'#dc854a'),'marker-ball');
   }
 }
-if(s.ballCount){
-  if(s.groundWires?.count===2&&s.ballCircuits){
-    s.ballCircuits.forEach((row,index)=>{
-      const y=17+index*24;
-      drawMarkerRow(y,row.count,row.color==='white'?'#ffffff':'#dc854a');
-      text(20,y+5,'#'+(index+1),'#536c77',14);
-    });
-  }else if(s.groundWires?.count===2){
-    drawMarkerRow(17,Math.ceil(s.ballCount/2),'#ffffff');
-    drawMarkerRow(41,Math.floor(s.ballCount/2),'#dc854a');
-  }else drawMarkerRow(31,s.ballCount);
+if(s.ballCircuits||s.ballCount){
+  for(const [index,y] of [[0,17],[1,41]]){
+    const row=s.ballCircuits?.[index];
+    const color=row?.color==='white'?'#ffffff':row?.color==='orange'?'#dc854a':'#a2b4bc';
+    drawMarkerRow(y,row?.count??0,color);
+    text(20,y+5,'#'+(index+1),'#536c77',14);
+  }
+  if(!s.ballCircuits)text(320,27,'기존 '+s.ballCount+'개 · 회선별 미지정','#536c77',16);
 }
 text(320,558,s.terrain||'지형 미등록','#5b786b',22);
 x+='</svg>';return x;

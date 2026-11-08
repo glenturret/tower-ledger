@@ -2,7 +2,15 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const base={id:'one',lineId:M.LINES[0].id,tower:1,part:'애자련',insulatorType:'내장',stringCount:2,status:'등록',note:'',land:[],photos:[],createdAt:'2026-11-06T00:00:00Z'};
 const validate=r=>M.validate({format:'tower-ledger',version:4,records:[r]});assert.doesNotThrow(()=>validate(base));assert.throws(()=>validate({...base,stringCount:3}));
 for(const type of ['내장','현수'])for(const count of [1,2]){const html=D.diagram({insulatorType:type,stringCount:count});assert.equal([...html.matchAll(/data-kind="insulator-string"/g)].length,6*count);assert(html.includes('rotate('+(type==='내장'?90:0)+')'));}
-for(const n of [0,1,5,100])assert.equal([...D.diagram({ballCount:n}).matchAll(/class="marker-ball"/g)].length,n);
+const ballCircuits=[{count:9,color:'orange'},{count:6,color:'white'}];
+for(const groundWires of [undefined,{count:1,single:'OPGW'},{count:2,left:'OPGW',right:'GW'}]){
+  const svg=D.diagram({groundWires,ballCount:15,ballCircuits});
+  const markers=svg.match(/<circle class="marker-ball"[^>]+>/g);
+  assert.equal(markers.length,15);
+  assert.equal(markers.filter(marker=>marker.includes('#dc854a')).length,9);
+  assert.equal(markers.filter(marker=>marker.includes('#ffffff')).length,6);
+}
+assert.match(D.diagram({ballCount:15}),/기존 15개 · 회선별 미지정/);
 const direction='1호→2호 정방향';for(const position of ['좌측','중앙','우측'])for(const single of ['OPGW','GW'])assert.doesNotThrow(()=>validate({...base,part:'가공지선',groundWires:{count:1,position,single,direction}}));
 for(const left of ['OPGW','GW'])for(const right of ['OPGW','GW']){const groundWires={count:2,left,right,direction};assert(M.validGround(groundWires));assert.doesNotThrow(()=>validate({...base,part:'가공지선',groundWires}));const html=D.diagram({groundWires});assert(html.includes('좌 '+left));assert(html.includes('우 '+right));}
 for(const g of [{count:1,single:'OPGW',position:'',direction},{count:2,left:'OPGW',right:'',direction},{count:2,left:'OPGW',right:'GW',direction:'reverse'}])assert.throws(()=>validate({...base,part:'가공지선',groundWires:g}));

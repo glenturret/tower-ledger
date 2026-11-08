@@ -17,7 +17,7 @@ function validBallCircuits(rows,total){
 function ballLabel(record){
   if(!Number.isInteger(record.ballCount))return '개수 미등록';
   const total=record.ballCount+'개';
-  if(!record.ballCircuits)return total;
+  if(!record.ballCircuits)return record.ballCount?total+' · 회선별 미지정':total;
   return total+' · '+record.ballCircuits.map((row,index)=>'#'+(index+1)+' '+row.count+'개'+(row.color?' '+(row.color==='white'?'흰색':'주황색'):'')).join(' / ');
 }
 function label(r){if(!r)return '미등록';if(r.part==='피뢰기')return arresterLocations(r).join(' · ')||'미설치';if(r.part==='철탑 기본정보')return [r.towerType,r.towerHeight?r.towerHeight+' m':''].filter(Boolean).join(' · ')||'미등록';if(r.part==='가공지선')return groundLabel(r.groundWires);if(r.part==='항공구')return ballLabel(r);if(r.part==='항공등')return r.lampUnits?['상부','하부'].map((p,i)=>p+' 전원 '+(r.lampUnits[LAMP_KEYS[i*2]]||'미확인')+' / 부하 '+(r.lampUnits[LAMP_KEYS[i*2+1]]||'미확인')).join(' · '):r.lightIntensity||'광도 미등록';if(r.part==='애자련')return (r.insulatorType||'형태 미등록')+' · '+(r.stringCount?r.stringCount+'련':'련수 미등록')+(r.insulatorYear?' · '+r.insulatorYear+'년':'')+(r.insulatorDiscs?' · 1련당 '+r.insulatorDiscs+'장':'');if(r.part==='지형')return r.terrain||'미등록';return r.land?.join(', ')||'미등록';}
