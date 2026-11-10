@@ -1,5 +1,5 @@
 (function(root){
-const LINES=[{id:'sinnamwon-uiryeong',name:'345KV 신남원-의령',count:136},{id:'sabong-gaeyang',name:'154KV 사봉-개양',count:56}];
+const LINES=[{id:'sinnamwon-uiryeong',name:'345KV 신남원-의령',count:136},{id:'sabong-gaeyang',name:'154KV 사봉-개양',count:57}];
 const LAMP_KEYS=['upperSupply','upperLoad','lowerSupply','lowerLoad'];
 const lampIntensity=(units)=>['고광도','중광도','저광도'].find(v=>LAMP_KEYS.some(k=>units?.[k]===v))||'';
 const validNumbers=g=>['1','2'].includes(g.leftNo)&&['1','2'].includes(g.rightNo)&&g.leftNo!==g.rightNo;
@@ -7,7 +7,7 @@ const sharedPart=p=>['철탑 기본정보','가공지선','지형','부지','항
 const PARTS=['철탑 기본정보','가공지선','애자련','피뢰기','항공구','항공등','지형','부지'];
 const CHOICES={'피뢰기':['#1','#2'],'항공등':['고광도','중광도','저광도'],'애자련':['내장','현수'],'지형':['산악지','논','도심지','비닐하우스단지']};
 const migrate=r=>({...r,lineId:r.lineId||LINES[0].id,land:Array.isArray(r.land)?r.land.map(value=>value==='칡밭'?'칡넝쿨':value):r.land});
-function latest(records,lineId,tower,part){return records.filter(r=>r.lineId===lineId&&r.tower===tower&&r.part===part).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt))[0];}
+function latest(records,lineId,tower,part){let found;for(const record of records)if(record.lineId===lineId&&record.tower===tower&&record.part===part&&(!found||Date.parse(record.createdAt)>Date.parse(found.createdAt)))found=record;return found;}
 function groundLabel(g){return !g?'미등록':g.count===1?'1조 · '+'중앙 '+g.single:'2조 · 좌 '+g.left+' / 우 '+g.right;}
 function validGround(g){return !!g&&g.direction==='1호→2호 정방향'&&(g.count===1?['좌측','중앙','우측'].includes(g.position)&&['OPGW','GW'].includes(g.single):g.count===2&&['OPGW','GW'].includes(g.left)&&['OPGW','GW'].includes(g.right));}
 function arresterLocations(record){return record?.arresterCircuits??(record?.arresterCircuit?[record.arresterCircuit]:[]);}
