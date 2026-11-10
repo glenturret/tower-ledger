@@ -31,3 +31,5 @@ fieldset input[type=radio]{display:inline-block;width:20px;height:20px;margin:0;
 .pairedLineKey>.current{padding:4px 6px;border-radius:6px;background:#ffebad;color:#443215;font-weight:700}
 
 #confirmDialog{max-width:430px}#confirmMessage{white-space:pre-wrap;overflow-wrap:anywhere}.confirmActions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.confirmActions button{min-width:96px}
+
+.historyphoto{min-width:0}.historyphoto img{display:block}.historyphoto button{width:100%;min-height:38px;margin-top:5px;padding:5px;font-size:12px;color:#8a352b;border-color:#e4bcb5}
