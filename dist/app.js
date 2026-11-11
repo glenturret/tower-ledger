@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION=36,$=id=>document.getElementById(id),M=LedgerModel;
+const APP_VERSION=37,$=id=>document.getElementById(id),M=LedgerModel;
 let db,records=[],circuitLayouts={},lineId=M.LINES[0].id,tower=1,circuit=1,part='항공등',photos=[],processing=0,saving=false,dirty=false,current='linesView',previous='linesView';
 const mainScene=TowerScene.mount($('mainScene')),editScene=TowerScene.mount($('editScene'));
 const line=()=>M.LINES.find(l=>l.id===lineId),latest=p=>M.latest(scopedRecords(),lineId,tower,p),stamp=d=>new Date(d).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
@@ -101,8 +101,7 @@ function renderParts(){
   list.replaceChildren();
   const groups=[
     ['기본정보',['철탑 기본정보']],
-    ['철탑 번호찰',['철탑 번호찰']],
-    ['설비',['가공지선','애자련','항공구','항공등']],
+    ['설비',['철탑 번호찰','가공지선','애자련','항공구','항공등']],
     ['주변 환경',['지형','부지']]
   ];
   for(const [title,parts] of groups){
