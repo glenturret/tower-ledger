@@ -6,7 +6,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: pages
@@ -14,11 +16,17 @@ concurrency:
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Publish static files
-        run: |
-          ledger_tree=$(git rev-parse HEAD:dist)
-          ledger_commit=$(printf '%s\n' "Deploy ${GITHUB_SHA}" | git commit-tree "${ledger_tree}")
-          git push origin "${ledger_commit}:refs/heads/gh-pages" --force
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
