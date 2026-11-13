@@ -33,3 +33,4 @@ fieldset input[type=radio]{display:inline-block;width:20px;height:20px;margin:0;
 #confirmDialog{max-width:430px}#confirmMessage{white-space:pre-wrap;overflow-wrap:anywhere}.confirmActions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.confirmActions button{min-width:96px}
 
 .historyphoto{min-width:0}.historyphoto img{display:block}.historyphoto button{width:100%;min-height:38px;margin-top:5px;padding:5px;font-size:12px;color:#8a352b;border-color:#e4bcb5}
+.positionPhoto{padding:4px 0 14px}.positionPhoto+ .positionPhoto{border-top:1px solid #d9e0d5;padding-top:14px}.positionPhoto h3{margin:4px 0 10px}
