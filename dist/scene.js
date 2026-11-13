@@ -189,6 +189,23 @@ if(['left','right'].includes(oneSide)&&(!fourCircuits||highlighted)){
     x+='</g>';
   }
 }
+const arresters=Array.isArray(s.arresterCircuits)?s.arresterCircuits.filter(value=>['#1','#2'].includes(value)):[];
+if(arresters.length){
+  const y=fourCircuits?(highlighted==='upper'?199:highlighted==='lower'?346:267):267;
+  for(const circuit of arresters){
+    const number=Number(circuit.slice(1));
+    const side=['left','right'].includes(oneSide)?(number===1?oneSide:oneSide==='left'?'right':'left'):(number===1?'left':'right');
+    const cx=side==='left'?218:422;
+    x+='<g data-kind="surge-arrester" data-circuit="'+circuit+'" data-side="'+side+'" aria-label="'+circuit+' 피뢰기">';
+    path('M'+cx+' '+(y-33)+' V'+(y+10),'#e27d2f',3);
+    for(const offset of [-24,-14,-4,6])circle(cx,y+offset,5,'#f5a24f');
+    path('M'+cx+' '+(y-33)+' l'+(side==='left'?-24:24)+' -13','#f0c07b',2);
+    x+='<rect x="'+(cx-39)+'" y="'+(y+14)+'" width="78" height="27" rx="7" fill="#fff0d8" stroke="#d96f25" stroke-width="1.5"/>';
+    text(cx,y+33,circuit+' 피뢰기','#6f3618',14);
+    x+='</g>';
+  }
+  if(!['left','right'].includes(oneSide))text(320,y+60,'피뢰기 회선 좌우 배치 미지정','#fff0d8',14);
+}
 x+='</svg>';return x;
 }
 function mount(el){const id='elevation-'+(++seq);return {update(s){el.innerHTML=diagram(s,id);
