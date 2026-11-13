@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION=44,$=id=>document.getElementById(id),M=LedgerModel;
+const APP_VERSION=45,$=id=>document.getElementById(id),M=LedgerModel;
 let db,records=[],circuitLayouts={},lineId=M.LINES[0].id,tower=1,circuit=1,part='항공등',photos=[],photoPositions=[],processing=0,saving=false,dirty=false,current='linesView',previous='linesView';
 const mainScene=TowerScene.mount($('mainScene')),editScene=TowerScene.mount($('editScene'));
 const line=()=>M.LINES.find(l=>l.id===lineId),latest=p=>M.latest(scopedRecords(),lineId,tower,p),stamp=d=>new Date(d).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});

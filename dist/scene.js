@@ -14,6 +14,9 @@ function diagram(s,id='tower'){
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const installedLamp=intensity=>['고광도','중광도','저광도'].includes(intensity);
 let x='<svg viewBox="0 0 640 570" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="철탑 입체 개념도"><defs><linearGradient id="'+id+'-sky" x1="0" y1="0" x2="0" y2="100%"><stop stop-color="#3d5971"/><stop offset="1" stop-color="#8096a7"/></linearGradient><linearGradient id="'+id+'-steel"><stop stop-color="#486777"/><stop offset=".5" stop-color="#9eb6bf"/><stop offset="1" stop-color="#405e6b"/></linearGradient><linearGradient id="'+id+'-glass"><stop stop-color="#e5f3ed"/><stop offset=".45" stop-color="#72a99a"/><stop offset="1" stop-color="#366a61"/></linearGradient></defs><rect width="640" height="570" rx="20" fill="url(#'+id+'-sky)"/>';
+// Soft daylight and galvanized steel retain contrast at phone sizes.
+x=x.replace('#3d5971','#b4cddd').replace('#8096a7','#e8eff1').replace('#486777','#526773').replace('#9eb6bf','#eef4f6').replace('#405e6b','#718894');
+x+='<g fill="#fff" opacity=".18"><ellipse cx="100" cy="105" rx="112" ry="25"/><ellipse cx="521" cy="167" rx="135" ry="19"/></g>';
 const path=(d,c,w=2,fill='none')=>{x+='<path d="'+d+'" stroke="'+c+'" stroke-width="'+w+'" fill="'+fill+'" stroke-linecap="round" stroke-linejoin="round"/>';};
 const text=(xx,y,t,c='#536c77',size=20)=>{x+='<text x="'+xx+'" y="'+y+'" text-anchor="middle" fill="'+c+'" font-size="'+size+'" font-family="system-ui,sans-serif">'+esc(t)+'</text>';};
 const circle=(xx,y,r,c,cls='')=>{x+='<circle '+(cls?'class="'+cls+'"':'')+' cx="'+xx+'" cy="'+y+'" r="'+r+'" fill="'+c+'"/>';};
@@ -29,7 +32,7 @@ else if(s.terrain==='비닐하우스단지'){
 }
 else if(s.terrain==='도심지'){for(const [xx,y,w] of [[25,410,65],[105,441,40],[485,420,55],[556,390,65]]){x+='<rect x="'+xx+'" y="'+y+'" width="'+w+'" height="'+(515-y)+'" rx="3" fill="#d1dee2"/>';for(let yy=y+14;yy<500;yy+=18)for(let a=xx+10;a<xx+w-6;a+=16)x+='<rect x="'+a+'" y="'+yy+'" width="6" height="8" fill="#9ab2bd"/>';}path('M0 524 H640','#b3c5cb',24);path('M0 524 H640','#f9fbf9',2);}
 else path('M0 515 Q320 495 640 515 V570 H0Z','none',0,'#e4ece6');
-x+='<ellipse cx="320" cy="529" rx="117" ry="13" fill="#365160" opacity=".09"/>';
+x+='<ellipse cx="350" cy="527" rx="134" ry="17" fill="#365160" opacity=".16"/>';
 // The front attachment points stay fixed so left and right remain easy to compare.
 const levels=[[512,92],[433,72],[352,51],[274,34],[201,23],[145,15],[111,8]];
 const front=([y,w],side)=>[320+side*w,y];
@@ -37,14 +40,21 @@ const rear=([y,w],side)=>[320+side*w*.76+13+w*.28,y-5-w*.20];
 const point=([px,py])=>px.toFixed(1)+' '+py.toFixed(1);
 const segment=(from,to,color,width)=>path('M'+point(from)+' L'+point(to),color,width);
 const face=(vertices,color)=>path('M'+vertices.map(point).join(' L')+' Z','none',0,color);
+function foundation([xx,yy]){
+  x+='<g data-kind="concrete-foundation">';
+  face([[xx-15,yy],[xx+6,yy-8],[xx+23,yy-1],[xx+1,yy+8]],'#e0e3df');
+  face([[xx-15,yy],[xx+1,yy+8],[xx+1,yy+22],[xx-15,yy+13]],'#8f9d9f');
+  face([[xx+1,yy+8],[xx+23,yy-1],[xx+23,yy+13],[xx+1,yy+22]],'#b2bebd');
+  path('M'+(xx-8)+' '+(yy-1)+' l15 2','#576b76',3);
+  for(const dx of [-5,7])circle(xx+dx,yy,1.6,'#eef2ef');
+  x+='</g>';
+}
 for(const side of [-1,1]){
-  const [footX,footY]=rear(levels[0],side);
-  face([[footX-13,footY+2],[footX+5,footY-4],[footX+18,footY+1],[footX,footY+8]],'#a9babd');
-  face([[footX-13,footY+2],[footX,footY+8],[footX,footY+16],[footX-13,footY+11]],'#81969b');
+  foundation(rear(levels[0],side));
 }
 for(let i=0;i<levels.length-1;i++){
   const lower=levels[i],upper=levels[i+1];
-  face([front(lower,1),rear(lower,1),rear(upper,1),front(upper,1)],'#d5e2e6');
+  // Open lattice: both faces and the opposite legs remain visible.
   for(const side of [-1,1]){
     segment(rear(lower,side),rear(upper,side),'#8ca4ae',3);
     segment(rear(lower,side),rear(upper,-side),'#b5c8ce',1.6);
@@ -52,13 +62,25 @@ for(let i=0;i<levels.length-1;i++){
     segment(front(lower,side),rear(upper,side),'#7f9ba5',2);
   }
   segment(rear(lower,-1),rear(lower,1),'#9eb4bc',1.8);
+  const middle=[(lower[0]+upper[0])/2,(lower[1]+upper[1])/2];
+  segment(front(middle,-1),front(middle,1),'#91a4ae',1.5);
   for(const side of [-1,1]){
-    segment(front(lower,side),front(upper,-side),'#6d8d9a',2.2);
-    segment(front(lower,side),front(upper,side),'url(#'+id+'-steel)',6);
+    segment(front(lower,side),front(upper,-side),'#536d7b',2.8);
+    const a=front(lower,side),b=front(upper,-side);
+    segment([a[0]+.7,a[1]-1],[b[0]+.7,b[1]-1],'#cad7dc',.8);
+    segment(front(lower,side),front(upper,side),'#4d626e',6);
+    segment([a[0]-1,a[1]],front(upper,side),'url(#'+id+'-steel)',3.5);
+    const mid=front(middle,side);
+    segment(mid,[320,middle[0]+(lower[0]-upper[0])*.25],'#8298a3',1.2);
+    face([[a[0]-4,a[1]-7],[a[0]+4,a[1]-7],[a[0]+5,a[1]+3],[a[0]-5,a[1]+3]],'#82949d');
+    for(const dy of [-4,0])circle(a[0],a[1]+dy,1.1,'#e8eff2');
   }
   segment(front(lower,-1),front(lower,1),'#627f8d',2.6);
 }
 segment(front(levels.at(-1),-1),front(levels.at(-1),1),'#526f7e',5);
+// Fixed access ladder and small attachment plates on the tower body.
+path('M314 501 L317 151 M322 501 L323 151','#667e8b',1.4);
+for(let y=158;y<502;y+=9)path('M317 '+y+' H322','#d6e2e7',1.1);
 const fourCircuits=s.towerCircuitCount===4;
 const armLevels=fourCircuits?[[153,100],[199,108],[245,117],[300,137],[346,146],[392,155]]:[[190,113],[267,133],[344,153]];
 const armDepth=fourCircuits?16:23;
@@ -97,6 +119,10 @@ for(const [i,[y,width]] of armLevels.entries()){
     segment(upper(1),lower(1),'#89a9ba',2.3);
     segment(lower(1),back(lower(1)),'#b3cad6',2.3);
     circle(tipX,y,3.4,'#d3e3e9');
+    for(const t of [0,.5,1]){
+      const [bx,by]=lower(t);
+      circle(bx,by,2.3,'#6d818b');circle(bx-.5,by-.7,.9,'#f5f8f9');
+    }
   }
   x+='</g>';
 }
@@ -115,14 +141,25 @@ if(fourCircuits){
 }
 text(517,115,s.towerCircuitCount?s.towerCircuitCount+'회선':'2회선 예시','#263f50',19);
 path('M280 163 L268 93 L305 145 M360 163 L372 93 L335 145','#7897a4',4);
-for(const xx of [228,412]){x+='<rect x="'+(xx-13)+'" y="510" width="26" height="15" rx="2" fill="#93a5a8"/>';}
+for(const side of [-1,1]){
+  const tip=side<0?268:372,base=side<0?280:360;
+  path('M'+tip+' 93 L'+(tip+side*12)+' 106 L'+base+' 163','#647e8b',2);
+  for(let n=0;n<4;n++){
+    const y=111+n*11,xx=tip+(base-tip)*(y-93)/70;
+    path('M'+(xx-5)+' '+y+' l10 7 M'+(xx+5)+' '+y+' l-10 7','#9fb3bd',1.4);
+  }
+  foundation(front(levels[0],side));
+}
 const g=s.groundWires;const slots=g?(g.count===1?[[320,g.single,'중앙']]:[[268,g.left,'좌'],[372,g.right,'우']]):[];
 for(const [xx,type,pos] of slots){const c=type==='OPGW'?'#387d9e':'#8d7862';path('M'+(xx-26)+' 62 L'+xx+' 93 L'+(xx+12)+' 119',c,3);circle(xx,93,5,c);text(xx<320?164:xx>320?476:320,81,pos+' '+type,c,22);}
 if(!g)text(320,62,'가공지선 미등록','#8ca0a8',20);
 const count=s.stringCount||0;
 const stringScale=fourCircuits?.68:1;
 if(s.insulatorType&&count){for(const [y,w] of armLevels)for(const side of [-1,1]){const xx=320+side*w;for(let n=0;n<count;n++){const offset=count===2?(n?7:-7):0;const horizontal=s.insulatorType==='내장';const cx=xx+(horizontal?side*24*stringScale:offset),cy=y+(horizontal?offset:25*stringScale);x+='<g data-kind="insulator-string" transform="translate('+cx+' '+cy+') rotate('+(horizontal?90:0)+') scale('+stringScale+')">';path('M0 -24 V24','#58777c',2.5);for(let j=-18;j<=18;j+=6)x+='<ellipse cx="0" cy="'+j+'" rx="8" ry="2.7" fill="url(#'+id+'-glass)" stroke="#4f8579" stroke-width=".8"/>';x+='</g>';}
-const ex=xx+(s.insulatorType==='내장'?side*49*stringScale:0),ey=y+(s.insulatorType==='현수'?51*stringScale:0);circle(ex,ey,4,'#45616d');path('M'+ex+' '+ey+' q'+side*30+' 6 '+side*62+' 21','#c2d3db',2);}}
+const ex=xx+(s.insulatorType==='내장'?side*49*stringScale:0),ey=y+(s.insulatorType==='현수'?51*stringScale:0);circle(ex,ey,4,'#45616d');
+// Bundled phase conductors recede toward the edge with a natural sag.
+for(const offset of [-2,2])path('M'+ex+' '+(ey+offset)+' Q'+(ex+side*60)+' '+(ey+30+offset)+' '+(side<0?0:640)+' '+(ey+13+offset),'#637e8d',1.1);
+path('M'+(ex+side*25)+' '+(ey+9)+' v8','#8296a0',1.5);}}
 function drawLamp(xx,y,intensity){
   const high=intensity==='고광도';
   circle(xx,y,high?15:intensity==='중광도'?10:8,high?'#415e75':'#fce4bd');
@@ -204,7 +241,7 @@ if(arresters.length){
     text(cx,y+33,circuit+' 피뢰기','#6f3618',14);
     x+='</g>';
   }
-  if(!['left','right'].includes(oneSide))text(320,y+60,'피뢰기 회선 좌우 배치 미지정','#fff0d8',14);
+  if(!['left','right'].includes(oneSide))text(320,y+60,'피뢰기 회선 좌우 배치 미지정','#66421e',14);
 }
 x+='</svg>';return x;
 }
