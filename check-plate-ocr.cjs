@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),{parse}=require('./dist/plate-ocr.js'),M=require('./dist/model.js');
+assert.deepEqual(parse('NO. 41\nTYPE B2\nHEIGHT 30 m'),{towerType:'B2',towerHeight:30,towerNumber:41});
+assert.deepEqual(parse('41호\n철탑 형태 B2\n철탑 높이 30m'),{towerType:'B2',towerHeight:30,towerNumber:41});
+assert.equal(parse('154KV\nB2\n30.5 m').towerHeight,30.5);
+assert.equal(parse('41호 154KV').towerHeight,undefined);
+assert.equal(parse('B2 C3\n30m 40m').towerType,undefined);
+assert.equal(parse('B2 C3\n30m 40m').towerHeight,undefined);
+const legacy={id:'sign-test',lineId:M.LINES[0].id,tower:41,part:'철탑 기본정보',nationalPointPlate:'부착',note:'',land:[],photos:[],createdAt:'2026-11-17T00:00:00Z'};
+assert.equal(M.validate({format:'tower-ledger',version:5,records:[legacy]})[0].nationalPointPlate,'부착');
+assert.doesNotMatch(M.label(legacy),/국가지점/);
+const signs={...legacy,part:'표시찰',photos:['data:image/jpeg;base64,/9j/2Q==','data:image/jpeg;base64,/9j/2Q=='],photoPositions:['dangerSign','nationalSign']};
+assert.doesNotThrow(()=>M.validate({format:'tower-ledger',version:5,records:[signs]}));
+assert.match(M.label(signs),/위험표시찰 1장 · 국가지점 번호찰 1장/);
+console.log('PASS OCR labeled/unlabeled values, ambiguous data, signs backup and legacy compatibility');
