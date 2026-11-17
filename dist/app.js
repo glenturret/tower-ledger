@@ -1,10 +1,11 @@
 'use strict';
-const APP_VERSION=52,$=id=>document.getElementById(id),M=LedgerModel;
+const APP_VERSION=53,$=id=>document.getElementById(id),M=LedgerModel;
 let db,records=[],circuitLayouts={},lineId=M.LINES[0].id,tower=1,circuit=1,part='항공등',photos=[],photoPositions=[],photoAppliedAt=[],processing=0,saving=false,dirty=false,current='linesView',previous='linesView';
 const mainScene=TowerScene.mount($('mainScene')),editScene=TowerScene.mount($('editScene'));
 let plateOcrBusy=false;
 let pendingPlateAutoRead;
 const autoReadAttempts=new Set();
+const plateOcrMessages=new Map(),plateOcrTexts=new Map();
 const line=()=>M.LINES.find(l=>l.id===lineId),latest=p=>M.latest(scopedRecords(),lineId,tower,p),stamp=d=>new Date(d).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
 function toast(message){const el=$('toast'),dialogs=[...document.querySelectorAll('dialog[open]')],host=dialogs.at(-1)||document.body;if(el.parentElement!==host)host.append(el);el.textContent=message;el.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.hidden=true,5000);}
 function req(r){return new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
@@ -200,23 +201,30 @@ function photoTimeLabel(record,index){
   return '적용시간: '+date.toLocaleString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' (한국시간)';
 }
 
+function setPlateOcrStatus(message){
+  plateOcrMessages.set(lineId+':'+tower,message);
+  $('plateOcrStatus').textContent=message;
+}
+
 async function readPlatePhoto(src,{autoSave=false}={}){
   if(plateOcrBusy){if(autoSave)pendingPlateAutoRead={src,lineId,tower};return;}
   const targetLine=lineId,targetTower=tower;
   const initialInfoId=latest('철탑 기본정보')?.id;
   const sameTower=()=>lineId===targetLine&&tower===targetTower&&current==='towerView';
+  plateOcrTexts.delete(targetLine+':'+targetTower);
   plateOcrBusy=true;renderNumberPlatePhotos();
-  $('plateOcrStatus').textContent='사진 인식을 준비합니다. 처음에는 조금 걸릴 수 있습니다.';
+  setPlateOcrStatus('사진 인식을 준비합니다. 처음에는 조금 걸릴 수 있습니다.');
   try{
-    const result=await PlateOCR.recognize(src,message=>{if(sameTower())$('plateOcrStatus').textContent=message;});
+    const result=await PlateOCR.recognize(src,message=>{if(sameTower())setPlateOcrStatus(message);});
     if(!sameTower())return;
-    if(!latest('철탑 번호찰')?.photos.includes(src)){$('plateOcrStatus').textContent='번호찰 사진이 변경되었습니다. 새 사진에서 다시 읽어주세요.';return;}
-    if($('editor').open){$('plateOcrStatus').textContent='열려 있는 편집을 마친 뒤 사진 읽기를 다시 눌러주세요.';return;}
-    if(result.towerNumber&&result.towerNumber!==targetTower){$('plateOcrStatus').textContent='사진에서 '+result.towerNumber+'호가 읽혔습니다. 현재 '+targetTower+'호의 번호찰이 맞는지 확인해주세요.';return;}
-    if(!result.towerType&&!result.towerHeight){$('plateOcrStatus').textContent='형태·높이를 정확히 읽지 못했습니다. 글자가 선명한 사진으로 다시 시도하거나 기본정보에 직접 입력해주세요.';return;}
+    plateOcrTexts.set(lineId+':'+tower,result.text||'');
+    if(!latest('철탑 번호찰')?.photos.includes(src)){setPlateOcrStatus('번호찰 사진이 변경되었습니다. 새 사진에서 다시 읽어주세요.');return;}
+    if($('editor').open){setPlateOcrStatus('열려 있는 편집을 마친 뒤 사진 읽기를 다시 눌러주세요.');return;}
+    if(result.towerNumber&&result.towerNumber!==targetTower){setPlateOcrStatus('사진에서 '+result.towerNumber+'호가 읽혔습니다. 현재 '+targetTower+'호의 번호찰이 맞는지 확인해주세요.');return;}
+    if(!result.towerType&&!result.towerHeight){setPlateOcrStatus('형태·높이를 정확히 읽지 못했습니다. 글자가 선명한 사진으로 다시 시도하거나 기본정보에 직접 입력해주세요.');return;}
     if(autoSave){
-      if(latest('철탑 기본정보')?.id!==initialInfoId){$('plateOcrStatus').textContent='인식 중 기본정보가 변경되어 자동 반영을 멈췄습니다. 아래 읽기 버튼으로 확인해주세요.';return;}
-      if(!(result.confidence>=65)){$('plateOcrStatus').textContent='글자가 불명확해 자동 반영하지 않았습니다. 아래 읽기 버튼으로 결과를 확인하거나 선명한 사진을 첨부해주세요.';return;}
+      if(latest('철탑 기본정보')?.id!==initialInfoId){setPlateOcrStatus('인식 중 기본정보가 변경되어 자동 반영을 멈췄습니다. 아래 읽기 버튼으로 확인해주세요.');return;}
+      if(!(result.confidence>=65)){setPlateOcrStatus('글자가 불명확해 자동 반영하지 않았습니다. 인식 결과 확인 후 적용 버튼을 누르거나 선명한 사진을 첨부해주세요.');return;}
       const previous=latest('철탑 기본정보');
       const record={...(previous||{status:'등록',note:'',land:[],photos:[]}),id:crypto.randomUUID(),lineId:targetLine,tower:targetTower,part:'철탑 기본정보',createdAt:new Date().toISOString(),...(result.towerType?{towerType:result.towerType}:{}),...(result.towerHeight?{towerHeight:result.towerHeight}:{})};
       M.validate({format:'tower-ledger',version:5,records:[record]});
@@ -224,7 +232,7 @@ async function readPlatePhoto(src,{autoSave=false}={}){
       records.push(record);
       if(sameTower()){
         render();
-        $('plateOcrStatus').textContent='자동 저장 완료 · '+[result.towerType?'형태 '+result.towerType:'',result.towerHeight?'높이 '+result.towerHeight+' m':''].filter(Boolean).join(' · ')+(!result.towerType||!result.towerHeight?' · 읽지 못한 항목은 기존 값을 유지했습니다.':'');
+        setPlateOcrStatus('자동 저장 완료 · '+[result.towerType?'형태 '+result.towerType:'',result.towerHeight?'높이 '+result.towerHeight+' m':''].filter(Boolean).join(' · ')+(!result.towerType||!result.towerHeight?' · 읽지 못한 항목은 기존 값을 유지했습니다.':''));
         toast('사진에서 읽은 철탑 기본정보를 자동 저장했습니다.');
       }
       return;
@@ -236,10 +244,10 @@ async function readPlatePhoto(src,{autoSave=false}={}){
     $('towerOcrReview').hidden=false;
     $('towerOcrReview').textContent='사진 인식 결과: 형태 '+(result.towerType||'미인식')+' · 높이 '+(result.towerHeight?result.towerHeight+' m':'미인식')+'. 사진과 비교한 뒤 저장해주세요. 읽지 못한 항목은 기존 값을 유지했습니다.';
     dirty=true;preview();
-    $('plateOcrStatus').textContent='사진에서 읽은 값을 기본정보에 입력했습니다. 확인 후 저장해주세요.';
+    setPlateOcrStatus('사진에서 읽은 값을 기본정보에 입력했습니다. 확인 후 저장해주세요.');
     toast('사진에서 읽은 형태·높이를 확인한 뒤 관리대장 저장을 눌러주세요.');
   }catch{
-    if(sameTower())$('plateOcrStatus').textContent='사진을 읽지 못했습니다. 다시 시도하거나 기본정보에 직접 입력해주세요.';
+    if(sameTower())setPlateOcrStatus('사진을 읽지 못했습니다. 다시 시도하거나 기본정보에 직접 입력해주세요.');
   }finally{
     plateOcrBusy=false;if(current==='towerView')renderNumberPlatePhotos();
     const pending=pendingPlateAutoRead;pendingPlateAutoRead=undefined;
@@ -258,6 +266,11 @@ function autoReadExistingPlate(){
 
 function renderNumberPlatePhotos(){
   const plate=latest('철탑 번호찰');
+  const info=latest('철탑 기본정보'),key=lineId+':'+tower;
+  const hasPhotos=!!plate?.photos.length;
+  $('plateOcrStatus').textContent=hasPhotos?(plateOcrMessages.get(key)||(info?.towerType&&info?.towerHeight?'형태·높이가 이미 등록되어 자동 읽기를 건너뛰었습니다. 사진 값으로 갱신하려면 아래 사진에서 자동 반영을 눌러주세요.':'저장된 사진이 있습니다. 아래 사진에서 자동 반영을 눌러 실행하거나 다시 시도할 수 있습니다.')):'번호찰 사진을 저장하면 형태·높이 자동 인식이 시작됩니다.';
+  $('plateOcrDetails').hidden=!hasPhotos||!plateOcrTexts.get(key);
+  $('plateOcrText').textContent=plateOcrTexts.get(key)||'';
   const fragment=document.createDocumentFragment();
   for(const [index,src] of (plate?.photos||[]).entries()){
     const title=tower+'호 철탑 번호찰'+(plate.photos.length>1?' · '+(index+1):'');
@@ -265,8 +278,9 @@ function renderNumberPlatePhotos(){
     button.type='button';button.className='numberPlatePhoto';
     button.setAttribute('aria-label',title+' 크게 보기');
     const img=document.createElement('img');img.src=src;img.alt=title;img.loading='lazy';
-    const time=document.createElement('span');time.className='photoAppliedTime';time.textContent=photoTimeLabel(plate,index);button.append(img,time);const read=document.createElement('button');read.type='button';read.className='readPlatePhoto';read.textContent='이 사진에서 형태·높이 읽기';read.disabled=plateOcrBusy;read.onclick=()=>readPlatePhoto(src);const item=document.createElement('div');item.append(button,read);
+    const time=document.createElement('span');time.className='photoAppliedTime';time.textContent=photoTimeLabel(plate,index);button.append(img,time);const read=document.createElement('button');read.type='button';read.className='readPlatePhoto';read.textContent='사진에서 자동 반영';read.disabled=plateOcrBusy;read.onclick=()=>readPlatePhoto(src,{autoSave:true});const item=document.createElement('div');item.append(button,read);
     button.onclick=()=>showPhoto(src,title,line().name+' / '+photoTimeLabel(plate,index));
+    const review=document.createElement('button');review.type='button';review.className='reviewPlatePhoto';review.textContent='인식 결과 확인 후 적용';review.disabled=plateOcrBusy;review.onclick=()=>readPlatePhoto(src);item.append(review);
     fragment.append(item);
   }
   $('numberPlatePhotoList').replaceChildren(fragment);
@@ -275,7 +289,6 @@ function renderNumberPlatePhotos(){
 
 function openTower(number){
   if(!Number.isInteger(number)||number<(line().start??1)||number>(line().end??line().count))return;
-  $('plateOcrStatus').textContent='';
   tower=number;
   mainScene.reset();
   show('towerView');
