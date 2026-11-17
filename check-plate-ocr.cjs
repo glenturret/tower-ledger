@@ -1,4 +1,9 @@
-const assert=require('node:assert/strict'),{parse}=require('./dist/plate-ocr.js'),M=require('./dist/model.js');
+const assert=require('node:assert/strict'),{parse,compactPair,compactConfidence}=require('./dist/plate-ocr.js'),M=require('./dist/model.js');
+for(const text of ['41호 B2-30m','41호 B2 - 30 m','41호 B2–30m','41호 B2-30rn'])assert.deepEqual(parse(text),{towerType:'B2',towerHeight:30,towerNumber:41});
+assert.equal(compactPair('B2-30m C3-40m'),undefined);
+const focusedData={text:'기타 글자 B2-30m',confidence:25,blocks:[{paragraphs:[{lines:[{words:[{text:'기타',confidence:10},{text:'B2-30m',confidence:94}]}]}]}]};
+assert.equal(compactConfidence(focusedData),94);
+assert.equal(compactConfidence({...focusedData,text:'B2-30m C3-40m'}),0);
 assert.deepEqual(parse('NO. 41\nTYPE B2\nHEIGHT 30 m'),{towerType:'B2',towerHeight:30,towerNumber:41});
 assert.deepEqual(parse('41호\n철탑 형태 B2\n철탑 높이 30m'),{towerType:'B2',towerHeight:30,towerNumber:41});
 assert.equal(parse('154KV\nB2\n30.5 m').towerHeight,30.5);

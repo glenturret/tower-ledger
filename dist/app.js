@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION=53,$=id=>document.getElementById(id),M=LedgerModel;
+const APP_VERSION=54,$=id=>document.getElementById(id),M=LedgerModel;
 let db,records=[],circuitLayouts={},lineId=M.LINES[0].id,tower=1,circuit=1,part='항공등',photos=[],photoPositions=[],photoAppliedAt=[],processing=0,saving=false,dirty=false,current='linesView',previous='linesView';
 const mainScene=TowerScene.mount($('mainScene')),editScene=TowerScene.mount($('editScene'));
 let plateOcrBusy=false;
@@ -214,7 +214,9 @@ async function readPlatePhoto(src,{autoSave=false}={}){
   plateOcrTexts.delete(targetLine+':'+targetTower);
   plateOcrBusy=true;renderNumberPlatePhotos();
   setPlateOcrStatus('사진 인식을 준비합니다. 처음에는 조금 걸릴 수 있습니다.');
+  let stage='read';
   try{
+    if(typeof PlateOCR==='undefined'){const error=new Error('인식 도구 없음');error.code='OCR_ENGINE';throw error;}
     const result=await PlateOCR.recognize(src,message=>{if(sameTower())setPlateOcrStatus(message);});
     if(!sameTower())return;
     plateOcrTexts.set(lineId+':'+tower,result.text||'');
@@ -224,9 +226,10 @@ async function readPlatePhoto(src,{autoSave=false}={}){
     if(!result.towerType&&!result.towerHeight){setPlateOcrStatus('형태·높이를 정확히 읽지 못했습니다. 글자가 선명한 사진으로 다시 시도하거나 기본정보에 직접 입력해주세요.');return;}
     if(autoSave){
       if(latest('철탑 기본정보')?.id!==initialInfoId){setPlateOcrStatus('인식 중 기본정보가 변경되어 자동 반영을 멈췄습니다. 아래 읽기 버튼으로 확인해주세요.');return;}
-      if(!(result.confidence>=65)){setPlateOcrStatus('글자가 불명확해 자동 반영하지 않았습니다. 인식 결과 확인 후 적용 버튼을 누르거나 선명한 사진을 첨부해주세요.');return;}
+      if(!((result.effectiveConfidence??Math.max(result.confidence||0,result.compactConfidence||0))>=65)){setPlateOcrStatus('사진에서 읽은 형태·높이를 자동 확정하지 못했습니다. 인식된 글자를 확인하거나 인식 결과 확인 후 적용을 눌러주세요.');return;}
       const previous=latest('철탑 기본정보');
       const record={...(previous||{status:'등록',note:'',land:[],photos:[]}),id:crypto.randomUUID(),lineId:targetLine,tower:targetTower,part:'철탑 기본정보',createdAt:new Date().toISOString(),...(result.towerType?{towerType:result.towerType}:{}),...(result.towerHeight?{towerHeight:result.towerHeight}:{})};
+      stage='save';
       M.validate({format:'tower-ledger',version:5,records:[record]});
       await transaction('records','readwrite',tx=>tx.objectStore('records').add(record));
       records.push(record);
@@ -246,8 +249,8 @@ async function readPlatePhoto(src,{autoSave=false}={}){
     dirty=true;preview();
     setPlateOcrStatus('사진에서 읽은 값을 기본정보에 입력했습니다. 확인 후 저장해주세요.');
     toast('사진에서 읽은 형태·높이를 확인한 뒤 관리대장 저장을 눌러주세요.');
-  }catch{
-    if(sameTower())setPlateOcrStatus('사진을 읽지 못했습니다. 다시 시도하거나 기본정보에 직접 입력해주세요.');
+  }catch(error){
+    if(sameTower())setPlateOcrStatus(stage==='save'?'글자는 읽었지만 기본정보를 저장하지 못했습니다. 기기 저장 공간을 확인해주세요.':error.code==='OCR_ENGINE'?'사진 인식 도구를 실행하지 못했습니다. 사진 선명도와는 관계없는 실행 오류입니다. 인터넷 연결을 확인하고 다시 시도해주세요.':'사진에서 글자를 추출하는 중 오류가 발생했습니다. 다시 시도하거나 기본정보에 직접 입력해주세요.');
   }finally{
     plateOcrBusy=false;if(current==='towerView')renderNumberPlatePhotos();
     const pending=pendingPlateAutoRead;pendingPlateAutoRead=undefined;
