@@ -35,7 +35,7 @@ async function recognize(photo,onProgress=()=>{}){
     });
     await worker.setParameters({tessedit_pageseg_mode:'6'});
     const result=await worker.recognize(photo);
-    return {...parse(result.data.text),text:result.data.text};
+    return {...parse(result.data.text),text:result.data.text,confidence:result.data.confidence};
   }finally{if(worker)await worker.terminate();}
 }
 const api={parse,recognize};
