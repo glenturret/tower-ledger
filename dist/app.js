@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION=48,$=id=>document.getElementById(id),M=LedgerModel;
+const APP_VERSION=49,$=id=>document.getElementById(id),M=LedgerModel;
 let db,records=[],circuitLayouts={},lineId=M.LINES[0].id,tower=1,circuit=1,part='항공등',photos=[],photoPositions=[],processing=0,saving=false,dirty=false,current='linesView',previous='linesView';
 const mainScene=TowerScene.mount($('mainScene')),editScene=TowerScene.mount($('editScene'));
 const line=()=>M.LINES.find(l=>l.id===lineId),latest=p=>M.latest(scopedRecords(),lineId,tower,p),stamp=d=>new Date(d).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
@@ -110,7 +110,7 @@ function renderParts(){
   list.replaceChildren();
   const groups=[
     ['기본정보',['철탑 기본정보']],
-    ['설비',['철탑 번호찰','기초','가공지선','애자련','항공구','항공등']],
+    ['설비',['기초','가공지선','애자련','항공구','항공등']],
     ['주변 환경',['지형','부지']]
   ];
   for(const [title,parts] of groups){
@@ -182,6 +182,16 @@ $('saveArrester').onclick=async()=>{
   }
 };
 
+$('manageNumberPlate').onclick=()=>openEditor('철탑 번호찰');
+async function attachNumberPlate(event){
+  if(!event.target.files.length)return;
+  openEditor('철탑 번호찰');
+  await addPhotos(event);
+  if(dirty&&photos.length){$('choiceInput').value='부착';preview();}
+}
+$('plateCamera').onchange=attachNumberPlate;
+$('plateGallery').onchange=attachNumberPlate;
+
 function renderNumberPlatePhotos(){
   const plate=latest('철탑 번호찰');
   const fragment=document.createDocumentFragment();
@@ -196,7 +206,7 @@ function renderNumberPlatePhotos(){
     fragment.append(button);
   }
   $('numberPlatePhotoList').replaceChildren(fragment);
-  $('numberPlatePhotos').hidden=!plate?.photos.length;
+  $('numberPlateStatus').textContent=plate?'저장됨 · '+M.label(plate)+' · 사진 '+plate.photos.length+'장':'번호찰 사진을 첨부해주세요.';
 }
 
 function openTower(number){
