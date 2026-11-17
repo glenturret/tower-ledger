@@ -1,11 +1,12 @@
 'use strict';
-const APP_VERSION=54,$=id=>document.getElementById(id),M=LedgerModel;
+const APP_VERSION=55,$=id=>document.getElementById(id),M=LedgerModel;
 let db,records=[],circuitLayouts={},lineId=M.LINES[0].id,tower=1,circuit=1,part='항공등',photos=[],photoPositions=[],photoAppliedAt=[],processing=0,saving=false,dirty=false,current='linesView',previous='linesView';
 const mainScene=TowerScene.mount($('mainScene')),editScene=TowerScene.mount($('editScene'));
 let plateOcrBusy=false;
 let pendingPlateAutoRead;
 const autoReadAttempts=new Set();
 const plateOcrMessages=new Map(),plateOcrTexts=new Map();
+const expandedEquipmentPhotos=new Set();
 const line=()=>M.LINES.find(l=>l.id===lineId),latest=p=>M.latest(scopedRecords(),lineId,tower,p),stamp=d=>new Date(d).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
 function toast(message){const el=$('toast'),dialogs=[...document.querySelectorAll('dialog[open]')],host=dialogs.at(-1)||document.body;if(el.parentElement!==host)host.append(el);el.textContent=message;el.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.hidden=true,5000);}
 function req(r){return new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
@@ -124,10 +125,48 @@ function renderParts(){
     heading.textContent=title;
     const grid=document.createElement('div');
     grid.className='equipmentGrid';
-    for(const name of parts)grid.append(equipmentButton(name,equipmentName(name),latest(name)));
+    for(const name of parts)grid.append(equipmentCard(name,latest(name)));
     section.append(heading,grid);
     list.append(section);
   }
+}
+function equipmentCard(name,record){
+  const card=document.createElement('div');card.className='equipmentCard';card.dataset.part=name;
+  const editor=equipmentButton(name,equipmentName(name),record);
+  const toggle=document.createElement('button');toggle.type='button';toggle.className='equipmentPhotosToggle';
+  const count=record?.photos.length||0;
+  const text=document.createElement('span');text.textContent='사진 '+count+'장';
+  const arrow=document.createElement('span');arrow.className='equipmentPhotoArrow';arrow.textContent='⌄';arrow.setAttribute('aria-hidden','true');
+  toggle.append(text,arrow);toggle.setAttribute('aria-label',equipmentName(name)+' 사진 '+count+'장 미리보기');
+  const panel=document.createElement('div');panel.className='equipmentPhotoPanel';
+  panel.id='equipment-photos-'+M.PARTS.indexOf(name);toggle.setAttribute('aria-controls',panel.id);
+  const key=lineId+':'+tower+':'+name;
+  let loaded=false;
+  function setExpanded(expanded){
+    toggle.setAttribute('aria-expanded',String(expanded));panel.hidden=!expanded;card.classList.toggle('isExpanded',expanded);
+    if(expanded){
+      expandedEquipmentPhotos.add(key);
+      if(!loaded){
+        loaded=true;
+        if(!count){const empty=document.createElement('p');empty.className='caption';empty.textContent='저장된 사진이 없습니다. 항목 이름을 눌러 사진을 첨부하세요.';panel.append(empty);}
+        else{
+          const grid=document.createElement('div');grid.className='equipmentPhotoGrid';
+          record.photos.forEach((src,index)=>{
+            const label=record.photoPositions?.[index]&&record.photoPositions[index]!=='general'?photoPositionLabel(record.photoPositions[index]):'사진 '+(index+1);
+            const thumb=document.createElement('button');thumb.type='button';thumb.className='equipmentPhotoThumb';
+            const img=document.createElement('img');img.src=src;img.alt=equipmentName(name)+' · '+label;img.loading='lazy';
+            const caption=document.createElement('span');caption.textContent=label;
+            const time=document.createElement('small');time.textContent=photoTimeLabel(record,index);
+            thumb.append(img,caption,time);thumb.onclick=()=>showPhoto(src,equipmentName(name)+' · '+label,line().name+' / '+tower+'호 / '+photoTimeLabel(record,index));
+            grid.append(thumb);
+          });
+          panel.append(grid);
+        }
+      }
+    }else expandedEquipmentPhotos.delete(key);
+  }
+  toggle.onclick=()=>setExpanded(toggle.getAttribute('aria-expanded')!=='true');
+  setExpanded(expandedEquipmentPhotos.has(key));card.append(editor,toggle,panel);return card;
 }
 function equipmentButton(name,title,record,number){
   const button=document.createElement('button');
