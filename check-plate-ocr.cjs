@@ -16,4 +16,8 @@ assert.doesNotMatch(M.label(legacy),/국가지점/);
 const signs={...legacy,part:'표시찰',photos:['data:image/jpeg;base64,/9j/2Q==','data:image/jpeg;base64,/9j/2Q=='],photoPositions:['dangerSign','nationalSign']};
 assert.doesNotThrow(()=>M.validate({format:'tower-ledger',version:5,records:[signs]}));
 assert.match(M.label(signs),/위험표시찰 1장 · 국가지점 번호찰 1장/);
+const tagged={...signs,photos:[...signs.photos,signs.photos[0]],photoPositions:[...signs.photoPositions,'tagSign']};
+const restoredTag=M.validate(JSON.parse(JSON.stringify({format:'tower-ledger',version:5,records:[tagged]})))[0];
+assert.deepEqual(restoredTag.photoPositions,['dangerSign','nationalSign','tagSign']);
+assert.match(M.label(restoredTag),/태그 사진 1장/);
 console.log('PASS OCR labeled/unlabeled values, ambiguous data, signs backup and legacy compatibility');
