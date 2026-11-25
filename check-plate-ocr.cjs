@@ -1,4 +1,10 @@
 const assert=require('node:assert/strict'),{parse,compactPair,compactConfidence}=require('./dist/plate-ocr.js'),M=require('./dist/model.js');
+const {selectResult}=require('./dist/plate-ocr.js');
+const reliable={towerType:'B2',towerHeight:30,towerNumber:41,effectiveConfidence:90,text:'B2-30m'};
+assert.equal(selectResult([reliable,{...reliable,effectiveConfidence:93}]).ambiguous,false);
+const conflict=selectResult([reliable,{...reliable,towerType:'B3',effectiveConfidence:95}]);
+assert.equal(conflict.ambiguous,true);assert.equal(conflict.effectiveConfidence,0);
+assert.equal(selectResult([reliable,{...reliable,towerNumber:42}]).ambiguous,true);
 for(const text of ['41호 B2-30m','41호 B2 - 30 m','41호 B2–30m','41호 B2-30rn'])assert.deepEqual(parse(text),{towerType:'B2',towerHeight:30,towerNumber:41});
 assert.equal(compactPair('B2-30m C3-40m'),undefined);
 const focusedData={text:'기타 글자 B2-30m',confidence:25,blocks:[{paragraphs:[{lines:[{words:[{text:'기타',confidence:10},{text:'B2-30m',confidence:94}]}]}]}]};

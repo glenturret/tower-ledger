@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION=58,$=id=>document.getElementById(id),M=LedgerModel;
+const APP_VERSION=59,$=id=>document.getElementById(id),M=LedgerModel;
 let db,records=[],circuitLayouts={},lineId=M.LINES[0].id,tower=1,circuit=1,part='항공등',photos=[],photoPositions=[],photoAppliedAt=[],processing=0,saving=false,dirty=false,current='linesView',previous='linesView';
 const mainScene=TowerScene.mount($('mainScene')),editScene=TowerScene.mount($('editScene'));
 let plateOcrBusy=false;
@@ -107,7 +107,7 @@ window.addEventListener('beforeunload',e=>{if(dirty&&$('editor').open){e.prevent
 function photoBox(src,index,label){const box=document.createElement('div');box.className='photoitem';const img=document.createElement('img');img.src=src;img.alt=label;img.loading='lazy';const b=document.createElement('button');b.type='button';b.textContent='삭제';b.onclick=()=>{photos.splice(index,1);photoPositions.splice(index,1);photoAppliedAt.splice(index,1);dirty=true;renderPhotos();};box.append(img);if(['철탑 번호찰','표시찰','철탑 전경'].includes(part)){const time=document.createElement('small');time.className='photoAppliedTime';time.textContent=photoTimeLabel({photoAppliedAt},index);box.append(time);}box.append(b);return box;}
 function renderPositionPhotos(position,statusId,previewId,label){const items=photos.map((src,index)=>({src,index})).filter(item=>photoPositions[item.index]===position);$(statusId).textContent='현재 사진 '+items.length+'장';$(previewId).replaceChildren(...items.map(item=>photoBox(item.src,item.index,label+' 사진')));}
 function renderPhotos(){const general=photos.map((src,index)=>({src,index})).filter(item=>(photoPositions[item.index]||'general')==='general');$('photoStatus').textContent='현재 사진 '+photos.length+'/8장';$('photoPreview').replaceChildren(...general.map(item=>photoBox(item.src,item.index,'첨부 사진')));for(const args of [['tagSign','tagSignStatus','tagSignPreview','태그 사진'],['dangerSign','dangerSignStatus','dangerSignPreview','위험표시찰'],['nationalSign','nationalSignStatus','nationalSignPreview','국가지점 번호찰'],['upperSupply','upperSupplyPhotoStatus','upperSupplyPhotoPreview','상부 전원'],['upperLoad','upperLoadPhotoStatus','upperLoadPhotoPreview','상부 부하'],['upperSupply','lampUpperSupplyStatus','lampUpperSupplyPreview','상부등 전원'],['upperLoad','lampUpperLoadStatus','lampUpperLoadPreview','상부등 부하'],['lowerSupply','lampLowerSupplyStatus','lampLowerSupplyPreview','하부등 전원'],['lowerLoad','lampLowerLoadStatus','lampLowerLoadPreview','하부등 부하'],['foundationA','foundationAStatus','foundationAPreview','A각'],['foundationB','foundationBStatus','foundationBPreview','B각'],['foundationC','foundationCStatus','foundationCPreview','C각'],['foundationD','foundationDStatus','foundationDPreview','D각'],['foundationOverall','foundationOverallStatus','foundationOverallPreview','기초 전체'],['groundSingleSupply','groundSingleSupplyStatus','groundSingleSupplyPreview','OPGW 전원'],['groundSingleCenter','groundSingleCenterStatus','groundSingleCenterPreview','OPGW 중앙'],['groundSingleLoad','groundSingleLoadStatus','groundSingleLoadPreview','OPGW 부하'],['ground1Supply','ground1SupplyStatus','ground1SupplyPreview','#1 전원'],['ground1Center','ground1CenterStatus','ground1CenterPreview','#1 중앙'],['ground1Load','ground1LoadStatus','ground1LoadPreview','#1 부하'],['ground2Supply','ground2SupplyStatus','ground2SupplyPreview','#2 전원'],['ground2Center','ground2CenterStatus','ground2CenterPreview','#2 중앙'],['ground2Load','ground2LoadStatus','ground2LoadPreview','#2 부하'],['groundControlBox','groundControlBoxStatus','groundControlBoxPreview','OPGW 제어함']])renderPositionPhotos(...args);}
-function compress(file){return new Promise((resolve,reject)=>{if(!file.type.startsWith('image/'))return reject(new Error('이미지 파일을 선택해주세요.'));const url=URL.createObjectURL(file),im=new Image();im.onload=()=>{try{const scale=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*scale);c.height=Math.round(im.height*scale);c.getContext('2d').drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.8));}catch(e){reject(e);}finally{URL.revokeObjectURL(url);}};im.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('사진을 읽지 못했습니다. JPEG 사진으로 다시 선택해주세요.'));};im.src=url;});}
+function compress(file){const detailed=part==='철탑 번호찰';return new Promise((resolve,reject)=>{if(!file.type.startsWith('image/'))return reject(new Error('이미지 파일을 선택해주세요.'));const url=URL.createObjectURL(file),im=new Image();im.onload=()=>{try{const scale=Math.min(1,(detailed?2400:1600)/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*scale);c.height=Math.round(im.height*scale);c.getContext('2d').drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',detailed?.92:.8));}catch(e){reject(e);}finally{URL.revokeObjectURL(url);}};im.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('사진을 읽지 못했습니다. JPEG 사진으로 다시 선택해주세요.'));};im.src=url;});}
 async function addPhotos(event,position='general'){if(processing)return;processing++;$('saveRecord').disabled=true;try{const files=[...event.target.files];if(files.length+photos.length>8)throw new Error('한 기록에는 사진을 최대 8장 넣을 수 있습니다.');for(const file of files){const photo=await compress(file);if(!photos.includes(photo)){photos.push(photo);photoPositions.push(position);photoAppliedAt.push(new Date().toISOString());dirty=true;}}renderPhotos();}catch(e){renderPhotos();toast(e.message);}finally{event.target.value='';processing--;$('saveRecord').disabled=false;}}
 
 $('camera').onchange=event=>addPhotos(event);$('gallery').onchange=event=>addPhotos(event);for(const [id,position] of Object.entries({tagSignCamera:'tagSign',tagSignGallery:'tagSign',dangerSignCamera:'dangerSign',dangerSignGallery:'dangerSign',nationalSignCamera:'nationalSign',nationalSignGallery:'nationalSign',upperSupplyCamera:'upperSupply',upperSupplyGallery:'upperSupply',upperLoadCamera:'upperLoad',upperLoadGallery:'upperLoad',lampUpperSupplyPhoto:'upperSupply',lampUpperLoadPhoto:'upperLoad',lampLowerSupplyPhoto:'lowerSupply',lampLowerLoadPhoto:'lowerLoad',foundationAPhoto:'foundationA',foundationBPhoto:'foundationB',foundationCPhoto:'foundationC',foundationDPhoto:'foundationD',foundationOverallPhoto:'foundationOverall',groundSingleSupplyPhoto:'groundSingleSupply',groundSingleCenterPhoto:'groundSingleCenter',groundSingleLoadPhoto:'groundSingleLoad',ground1SupplyPhoto:'ground1Supply',ground1CenterPhoto:'ground1Center',ground1LoadPhoto:'ground1Load',ground2SupplyPhoto:'ground2Supply',ground2CenterPhoto:'ground2Center',ground2LoadPhoto:'ground2Load',groundControlBoxPhoto:'groundControlBox'}))$(id).onchange=event=>addPhotos(event,position);
@@ -303,7 +303,7 @@ function setPlateOcrStatus(message){
   $('plateOcrStatus').textContent=message;
 }
 
-async function readPlatePhoto(src,{autoSave=false}={}){
+async function readPlatePhoto(src,{autoSave=false,precision=false}={}){
   if(plateOcrBusy){if(autoSave)pendingPlateAutoRead={src,lineId,tower};return;}
   const targetLine=lineId,targetTower=tower;
   const initialInfoId=latest('철탑 기본정보')?.id;
@@ -314,7 +314,7 @@ async function readPlatePhoto(src,{autoSave=false}={}){
   let stage='read';
   try{
     if(typeof PlateOCR==='undefined'){const error=new Error('인식 도구 없음');error.code='OCR_ENGINE';throw error;}
-    const result=await PlateOCR.recognize(src,message=>{if(sameTower())setPlateOcrStatus(message);});
+    const result=await PlateOCR.recognize(src,message=>{if(sameTower())setPlateOcrStatus(message);},{precision});
     if(!sameTower())return;
     plateOcrTexts.set(lineId+':'+tower,result.text||'');
     if(!latest('철탑 번호찰')?.photos.includes(src)){setPlateOcrStatus('번호찰 사진이 변경되었습니다. 새 사진에서 다시 읽어주세요.');return;}
@@ -322,8 +322,9 @@ async function readPlatePhoto(src,{autoSave=false}={}){
     if(result.towerNumber&&result.towerNumber!==targetTower){setPlateOcrStatus('사진에서 '+result.towerNumber+'호가 읽혔습니다. 현재 '+targetTower+'호의 번호찰이 맞는지 확인해주세요.');return;}
     if(!result.towerType&&!result.towerHeight){setPlateOcrStatus('형태·높이를 정확히 읽지 못했습니다. 글자가 선명한 사진으로 다시 시도하거나 기본정보에 직접 입력해주세요.');return;}
     if(autoSave){
+      if(result.ambiguous){setPlateOcrStatus('인식 방식마다 형태·높이가 다르게 읽혀 자동 저장하지 않았습니다. 정밀하게 읽고 확인을 눌러 사진과 비교해주세요.');return;}
       if(latest('철탑 기본정보')?.id!==initialInfoId){setPlateOcrStatus('인식 중 기본정보가 변경되어 자동 반영을 멈췄습니다. 아래 읽기 버튼으로 확인해주세요.');return;}
-      if(!((result.effectiveConfidence??Math.max(result.confidence||0,result.compactConfidence||0))>=65)){setPlateOcrStatus('사진에서 읽은 형태·높이를 자동 확정하지 못했습니다. 인식된 글자를 확인하거나 인식 결과 확인 후 적용을 눌러주세요.');return;}
+      if(!((result.effectiveConfidence??Math.max(result.confidence||0,result.compactConfidence||0))>=65)){setPlateOcrStatus('사진에서 읽은 형태·높이를 자동 확정하지 못했습니다. 인식된 글자를 확인하거나 정밀하게 읽고 확인을 눌러주세요.');return;}
       const previous=latest('철탑 기본정보');
       const record={...(previous||{status:'등록',note:'',land:[],photos:[]}),id:crypto.randomUUID(),lineId:targetLine,tower:targetTower,part:'철탑 기본정보',status:'등록',createdAt:new Date().toISOString(),...(result.towerType?{towerType:result.towerType}:{}),...(result.towerHeight?{towerHeight:result.towerHeight}:{})};
       stage='save';
@@ -342,7 +343,7 @@ async function readPlatePhoto(src,{autoSave=false}={}){
     if(result.towerType)$('towerType').value=result.towerType;
     if(result.towerHeight)$('towerHeight').value=result.towerHeight;
     $('towerOcrReview').hidden=false;
-    $('towerOcrReview').textContent='사진 인식 결과: 형태 '+(result.towerType||'미인식')+' · 높이 '+(result.towerHeight?result.towerHeight+' m':'미인식')+'. 사진과 비교한 뒤 저장해주세요. 읽지 못한 항목은 기존 값을 유지했습니다.';
+    $('towerOcrReview').textContent=(result.ambiguous?'서로 다른 값이 읽혔습니다. 후보 중 한 값이 입력되어 있으니 사진과 꼭 비교해주세요. ':'')+'사진 인식 결과: 형태 '+(result.towerType||'미인식')+' · 높이 '+(result.towerHeight?result.towerHeight+' m':'미인식')+'. 사진과 비교한 뒤 저장해주세요. 읽지 못한 항목은 기존 값을 유지했습니다.';
     dirty=true;preview();
     setPlateOcrStatus('사진에서 읽은 값을 기본정보에 입력했습니다. 확인 후 저장해주세요.');
     toast('사진에서 읽은 형태·높이를 확인한 뒤 관리대장 저장을 눌러주세요.');
@@ -380,7 +381,7 @@ function renderNumberPlatePhotos(){
     const img=document.createElement('img');img.src=src;img.alt=title;img.loading='lazy';
     const time=document.createElement('span');time.className='photoAppliedTime';time.textContent=photoTimeLabel(plate,index);button.append(img,time);const read=document.createElement('button');read.type='button';read.className='readPlatePhoto';read.textContent='사진에서 자동 반영';read.disabled=plateOcrBusy;read.onclick=()=>readPlatePhoto(src,{autoSave:true});const item=document.createElement('div');item.append(button,read);
     button.onclick=()=>showPhoto(src,title,line().name+' / '+photoTimeLabel(plate,index));
-    const review=document.createElement('button');review.type='button';review.className='reviewPlatePhoto';review.textContent='인식 결과 확인 후 적용';review.disabled=plateOcrBusy;review.onclick=()=>readPlatePhoto(src);item.append(review);
+    const review=document.createElement('button');review.type='button';review.className='reviewPlatePhoto';review.textContent='정밀하게 읽고 확인';review.disabled=plateOcrBusy;review.onclick=()=>readPlatePhoto(src,{precision:true});item.append(review);
     fragment.append(item);
   }
   $('numberPlatePhotoList').replaceChildren(fragment);
